@@ -1,16 +1,31 @@
-# Проект на Docker
+# Description
 
-Цей проект використовує Docker для підняття серверів і бази даних. У цьому файлі описано, як підняти сервер та підключитись до бази даних.
+This project uses Docker so make sure that you have it installed on your system
 
-## Вимоги
+## Dependencies
 
 - Docker
 - Docker Compose
 
-## Підняття сервера
+## How to run server
 
-1. Клонуйте цей репозиторій:
+1. Clone this repo:
 
 ```bash
-git clone <URL вашого репозиторію>
-cd <назва вашого репозиторію>
+git clone https://github.com/OlegPoloviy/courseWork.git
+cd coursework
+
+```
+2. After cloning repo please connect to the database
+
+```bash
+http://localhost:5050
+```
+login: admin@example.com
+password: admin
+
+## How to stop all services
+
+```bash
+docker-compose down
+```
