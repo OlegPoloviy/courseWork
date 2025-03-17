@@ -1,8 +1,13 @@
 "use client";
 import { Box } from "@chakra-ui/react";
+import { useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
+import useUserStore from "@/store/user.store";
+import RegisterModal from "@/components/auth/RegisterModal";
 
 export default function Home() {
+  const user = useUserStore((state) => state.user);
+
 
   return (
     <Box
@@ -16,7 +21,8 @@ export default function Home() {
       justifyContent="center"
       alignItems="center"
     >
-      <LoginModal />
+      
+      <RegisterModal />
     </Box>
   );
 }

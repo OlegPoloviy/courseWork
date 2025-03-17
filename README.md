@@ -19,6 +19,10 @@ cd coursework
 2. After cloning repo please connect to the database
 
 ```bash
+docker compose up
+```
+
+```bash
 http://localhost:5050
 ```
 login: admin@example.com

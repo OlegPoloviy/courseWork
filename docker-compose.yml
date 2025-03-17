@@ -27,11 +27,15 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./servers.json:/pgadmin4/servers.json # Підключаємо конфіг файл
     networks:
       - pg_network
 
 volumes:
   pg_data:
+  pgadmin_data:
 
 networks:
   pg_network:
