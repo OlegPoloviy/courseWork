@@ -1,87 +1,111 @@
 "use client";
 import { Box, Button, Text, Input, Icon, Link } from "@chakra-ui/react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {useAuth} from "@/contex/AuthContext";
 
 const LoginModal = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { login } = useAuth(); // Get login function from AuthContext
+
+  const handleLogin = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Помилка входу");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Box
-      width={"400px"}
-      p={6}
-      borderRadius={"20px"}
-      bg={"rgba(255, 255, 255, 0.2)"}
-      backdropFilter={"blur(10px)"}
-      boxShadow={"lg"}
-      color={"white"}
-      textAlign={"center"}
-    >
-      <Text fontSize={"2xl"} fontWeight={"bold"} mb={4}>
-        Login
-      </Text>
-
-      <Text textAlign={"left"} mb={2}>
-        Email
-      </Text>
-      <Input
-        placeholder="username@gmail.com"
-        type="email"
-        bg={"rgba(255, 255, 255, 0.3)"}
-        border={"none"}
-        color={"white"}
-        _placeholder={{ color: "whiteAlpha.700" }}
-        mb={4}
-      />
-
-      <Text textAlign={"left"} mb={2}>
-        Password
-      </Text>
-      <Box position="relative">
-        <Input
-          placeholder="Password"
-          type={showPassword ? "text" : "password"}
-          bg={"rgba(255, 255, 255, 0.3)"}
-          border={"none"}
+      <Box
+          width={"400px"}
+          p={6}
+          borderRadius={"20px"}
+          bg={"rgba(255, 255, 255, 0.2)"}
+          backdropFilter={"blur(10px)"}
+          boxShadow={"lg"}
           color={"white"}
-          _placeholder={{ color: "whiteAlpha.700" }}
-          pr="3rem" 
-        />
-        <Icon
-          as={showPassword ? FaRegEyeSlash : FaRegEye}
-          onClick={() => setShowPassword(!showPassword)}
-          position="absolute"
-          right="1rem"
-          top="50%"
-          transform="translateY(-50%)"
-          cursor="pointer"
-          color="white"
-        />
-      </Box>
-
-      <Box display={"flex"} justifyContent={"space-between"} mt={4}>
-        <Link>Register</Link>
-        <Link
-          textAlign={"right"}
-          mt={2}
-          fontSize={"sm"}
-          opacity={0.8}
-          cursor={"pointer"}
-        >
-          Forgot Password?
-        </Link>
-      </Box>
-
-      <Button
-        width={"full"}
-        mt={6}
-        bg={"blue.900"}
-        color={"white"}
-        _hover={{ bg: "blue.700" }}
+          textAlign={"center"}
       >
-        Sign in
-      </Button>
-    </Box>
+        <Text fontSize={"2xl"} fontWeight={"bold"} mb={4}>
+          Login
+        </Text>
+
+        <Text textAlign={"left"} mb={2}>
+          Email
+        </Text>
+        <Input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="username@gmail.com"
+            type="email"
+            bg={"rgba(255, 255, 255, 0.3)"}
+            border={"none"}
+            color={"white"}
+            _placeholder={{ color: "whiteAlpha.700" }}
+            mb={4}
+        />
+
+
+        <Text textAlign={"left"} mb={2}>
+          Password
+        </Text>
+        <Box position="relative" mb={4}>
+          <Input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              type={showPassword ? "text" : "password"}
+              bg={"rgba(255, 255, 255, 0.3)"}
+              border={"none"}
+              color={"white"}
+              _placeholder={{ color: "whiteAlpha.700" }}
+              pr="3rem"
+          />
+          <Icon
+              as={showPassword ? FaRegEyeSlash : FaRegEye}
+              onClick={() => setShowPassword(!showPassword)}
+              position="absolute"
+              right="1rem"
+              top="50%"
+              transform="translateY(-50%)"
+              cursor="pointer"
+              color="white"
+          />
+        </Box>
+
+        <Box display={"flex"} justifyContent={"space-between"} alignItems={"center"} mt={4}>
+          <Link
+              href="/"
+              color="blue.300"
+              fontWeight="bold"
+              _hover={{ color: "blue.500", textDecoration: "underline" }}
+              _focus={{ boxShadow: "none" }}
+          >
+            Don't have an account?
+          </Link>
+          <Button
+              bg={"blue.900"}
+              color={"white"}
+              _hover={{ bg: "blue.700" }}
+              onClick={handleLogin}
+              width={"60%"}
+          >
+            Sign in
+          </Button>
+        </Box>
+      </Box>
   );
 };
 

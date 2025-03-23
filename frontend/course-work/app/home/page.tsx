@@ -1,11 +1,24 @@
 'use client';
 import { Box, Text, Input, Icon, Image, Button, Flex } from '@chakra-ui/react';
+import {useEffect} from "react";
+import {useRouter} from "next/navigation";
+import {useAuth} from "@/contex/AuthContext";
 import { FiSearch, FiCalendar, FiMic } from 'react-icons/fi';
 import { MdOutlineImageSearch } from "react-icons/md";
 import Carousel from '@/components/Recommended/RecommendedCarousele';
 
 const HomePage = () => {
-    return (
+    const {isAuthenticated} = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if(!isAuthenticated){
+            router.push('/login')
+        }
+    }, [isAuthenticated,router]);
+
+
+    return isAuthenticated ? (
         <Box
             backgroundImage={'url("/images/blackSquares.jpg")'}
             backgroundRepeat="no-repeat"
@@ -27,12 +40,10 @@ const HomePage = () => {
                 </Text>
             </Box>
 
-            {/* Слоган */}
             <Text fontSize="xl" mb={4} opacity={0.8}>
                 Search everything you need
             </Text>
 
-            {/* Поле пошуку */}
             <Box
                 display="flex"
                 alignItems="center"
@@ -63,7 +74,7 @@ const HomePage = () => {
                 <Carousel />
             </Box>
         </Box>
-    );
+    ): null;
 };
 
 export default HomePage;

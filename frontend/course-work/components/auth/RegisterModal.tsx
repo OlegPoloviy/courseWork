@@ -17,7 +17,7 @@ const RegisterModal = () => {
       const user = await registerUser(email, name, password);
       console.log("Зареєстрований користувач:", user);
       alert("Registered successfully");
-      router.push("/home");
+      router.push("/login");
     } catch (err) {
       console.error("Помилка реєстрації:", err);
       alert("Error with registration");
