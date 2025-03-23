@@ -65,6 +65,7 @@ export class UserService {
           email: true,
           name: true,
           avatar: true,
+          password: true,
           createdAt: true,
           updatedAt: true,
         },
