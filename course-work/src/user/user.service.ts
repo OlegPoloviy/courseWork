@@ -48,6 +48,9 @@ export class UserService {
           updatedAt: true,
         },
       });
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
       return user;
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -109,6 +112,23 @@ export class UserService {
       return user;
     } catch (err) {
       throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async findUserById(userId: string): Promise<UserDTO> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      return user;
+    } catch (err) {
+      throw new HttpException('Error with finding user', HttpStatus.NOT_FOUND);
     }
   }
 }
