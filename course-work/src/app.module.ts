@@ -10,7 +10,7 @@ import { FileModule } from './fileHandling/file.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // This makes ConfigModule available globally
+      isGlobal: true,
     }),
     UserModule,
     AuthModule,

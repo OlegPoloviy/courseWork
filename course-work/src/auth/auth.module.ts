@@ -12,7 +12,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
   imports: [
     ConfigModule,
     PrismaModule,
-    UserModule, // Import this to use UserService
+    UserModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

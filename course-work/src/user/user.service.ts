@@ -121,7 +121,22 @@ export class UserService {
         where: {
           id: userId,
         },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          createdAt: true,
+          updatedAt: true,
+          password: true,
+        },
       });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      const { password, ...userWithoutPassword } = user;
 
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
