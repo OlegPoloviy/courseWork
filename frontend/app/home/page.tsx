@@ -1,82 +1,295 @@
-'use client';
-import { Box, Text, Input, Icon, Image, Button } from '@chakra-ui/react';
-import {useRouter} from "next/navigation";
-import { FiSearch } from 'react-icons/fi';
-import {useSession} from "next-auth/react";
-import {useEffect} from "react";
-import { MdOutlineImageSearch } from "react-icons/md";
-import RecommendedCarousele from "@/components/Recommended/RecommendedCarousele";
+"use client";
+import {
+  Box,
+  Container,
+  Heading,
+  Text,
+  Input,
+  Button,
+  Stack,
+  Grid,
+  HStack,
+  Icon,
+  VStack,
+  InputGroup,
+  InputAddon,
+} from "@chakra-ui/react";
+import { CiSearch, CiImageOn } from "react-icons/ci";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
-const HomePage = () => {
-    const router = useRouter();
-    const { data: session, status } = useSession();
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const router = useRouter();
 
-    useEffect(() => {
-        if (status === "loading") return;
-        if (!session) {
-            router.push("api/auth/signin");
-        }
-    }, [session, status, router]);
+  const { data: session, status } = useSession();
 
-    if (status === "loading") return <p>Loading...</p>;
+  useEffect(() => {
+    if (!session && status != "loading") {
+      router.push("/");
+    }
+  }, [session]);
 
+  const handleSearch = () => {
+    console.log("Searching for:", searchQuery);
+  };
 
-    return  (
-        <Box
-            backgroundImage={'url("/images/blackSquares.jpg")'}
-            backgroundRepeat="no-repeat"
-            backgroundSize="cover"
-            backgroundPosition="center"
-            height="100vh"
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            flexDirection="column"
-            gap={6}
-            color="white"
-        >
-            <Box display="flex" alignItems="center" justifyContent="center" gap={3} mb={4}>
-                <Image src="/images/logo.png" boxSize="80px" />
-                <Text fontSize="4xl" fontWeight="bold" letterSpacing="wider">
-                    Search
-                </Text>
-            </Box>
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith("image/")) {
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        toast.error("Please upload an image file");
+      }
+    }
+  };
 
-            <Text fontSize="xl" mb={4} opacity={0.8}>
-                Search everything you need
+  const handleSearchByImage = () => {
+    try {
+      if (!imageFile) {
+        toast.error("No image selected");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", imageFile);
+
+      fetch("http://localhost:3001/file", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Accept: "application/json",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Success:", data);
+          toast.success("Image search completed");
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          toast.error("Failed to search by image");
+        });
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("Failed to process image");
+    }
+  };
+
+  return (
+    <Box>
+      {/* Hero Section */}
+      <Box
+        bg="gray.800"
+        color="white"
+        py={20}
+        position="relative"
+        _before={{
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          bg: "rgba(0,0,0,0.5)",
+          zIndex: 1,
+        }}
+      >
+        <Container maxW="container.xl" position="relative" zIndex={2}>
+          <Stack align="center" textAlign="center" gap={8}>
+            <Heading as="h1" size="2xl" fontWeight="bold">
+              Military Search System in our database
+            </Heading>
+            <Text fontSize="xl" maxW="2xl">
+              Access comprehensive military information, personnel records, and
+              operational data through our secure and efficient search platform.
             </Text>
 
-            <Box
-                display="flex"
-                alignItems="center"
-                backgroundColor="gray.800"
-                width="40%"
-                padding={3}
-                borderRadius="full"
-                boxShadow="xl"
-                _hover={{ boxShadow: "2xl" }}
-            >
-                <Icon as={FiSearch} color="gray.400" boxSize={5} mr={2} />
-                <Input
-                    placeholder="Start your search..."
-                    variant="outline"
-                    color="white"
+            {/* Text Search */}
+            <VStack gap={4} w="full" maxW="xl">
+              <InputGroup>
+                <>
+                  <Input
+                    placeholder="Search for military personnel, operations, or records..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    bg="white"
+                    color="black"
                     _placeholder={{ color: "gray.500" }}
-                    flex={1}
-                    mr={2}
+                  />
+                  <InputAddon p={0}>
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleSearch}
+                      h="full"
+                      w="full"
+                      borderLeftRadius={0}
+                    >
+                      <Icon as={CiSearch} boxSize={6} />
+                    </Button>
+                  </InputAddon>
+                </>
+              </InputGroup>
+
+              <Box
+                w="full"
+                p={4}
+                border="2px dashed"
+                borderColor="gray.300"
+                borderRadius="md"
+                cursor="pointer"
+                _hover={{ borderColor: "blue.400" }}
+                position="relative"
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    opacity: 0,
+                    cursor: "pointer",
+                  }}
                 />
-                <Icon as={MdOutlineImageSearch} color="gray.400" boxSize={5} mr={2} cursor="pointer" _hover={{ color: "gray.300" }} />
-                <Button colorScheme="green" size="sm" borderRadius="full">
-                    Search
-                </Button>
-            </Box>
+                <VStack gap={2}>
+                  <Icon as={CiImageOn} boxSize={8} color="gray.400" />
+                  <Text>Drag and drop an image or click to upload</Text>
+                  {imagePreview && (
+                    <Box mt={2}>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{ maxWidth: "200px", maxHeight: "200px" }}
+                      />
+                    </Box>
+                  )}
+                </VStack>
+              </Box>
+              {imageFile && (
+                <Button onClick={handleSearchByImage}>Search by image</Button>
+              )}
+            </VStack>
+          </Stack>
+        </Container>
+      </Box>
 
-            <Box width="60%" mt={6} height={'45%'}>
-                <Text fontSize={'2xl'} textAlign={'center'}>Here you can see our latest military equipment searches</Text>
-                <RecommendedCarousele />
-            </Box>
-        </Box>
-    );
-};
+      {/* Features Section */}
+      <Box py={20} bg="gray.800">
+        <Container maxW="container.xl">
+          <Stack align="center" gap={12}>
+            <Heading as="h2" size="xl" textAlign="center">
+              Key Features
+            </Heading>
+            <Grid
+              templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
+              gap={8}
+            >
+              <Box bg="gray.700" p={6} borderRadius="lg" boxShadow="lg">
+                <Stack>
+                  <Heading size="md">Advanced Search</Heading>
+                  <Text>
+                    Utilize powerful search filters and algorithms to find
+                    exactly what you need.
+                  </Text>
+                </Stack>
+              </Box>
+              <Box bg="gray.700" p={6} borderRadius="lg" boxShadow="lg">
+                <Stack>
+                  <Heading size="md">Secure Access</Heading>
+                  <Text>
+                    Enterprise-grade security ensuring your data remains
+                    protected at all times.
+                  </Text>
+                </Stack>
+              </Box>
+              <Box bg="gray.700" p={6} borderRadius="lg" boxShadow="lg">
+                <Stack>
+                  <Heading size="md">Real-time Updates</Heading>
+                  <Text>
+                    Access the most current information with our real-time data
+                    synchronization.
+                  </Text>
+                </Stack>
+              </Box>
+            </Grid>
+          </Stack>
+        </Container>
+      </Box>
 
-export default HomePage;
+      {/* Quick Access Section */}
+      <Box py={20}>
+        <Container maxW="container.xl">
+          <Stack align="center" gap={12}>
+            <Heading as="h2" size="xl" textAlign="center">
+              Quick Access
+            </Heading>
+            <Grid
+              templateColumns={{
+                base: "1fr",
+                md: "repeat(2, 1fr)",
+                lg: "repeat(4, 1fr)",
+              }}
+              gap={6}
+            >
+              <Button
+                size="lg"
+                colorScheme="blue"
+                variant="outline"
+                height="100px"
+                _hover={{ bg: "blue.50" }}
+              >
+                Personnel Records
+              </Button>
+              <Button
+                size="lg"
+                colorScheme="blue"
+                variant="outline"
+                height="100px"
+                _hover={{ bg: "blue.50" }}
+              >
+                Operations Database
+              </Button>
+              <Button
+                size="lg"
+                colorScheme="blue"
+                variant="outline"
+                height="100px"
+                _hover={{ bg: "blue.50" }}
+              >
+                Equipment Inventory
+              </Button>
+              <Button
+                size="lg"
+                colorScheme="blue"
+                variant="outline"
+                height="100px"
+                _hover={{ bg: "blue.50" }}
+              >
+                Training Records
+              </Button>
+            </Grid>
+          </Stack>
+        </Container>
+      </Box>
+    </Box>
+  );
+}
