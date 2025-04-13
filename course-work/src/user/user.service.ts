@@ -67,6 +67,7 @@ export class UserService {
           id: true,
           email: true,
           name: true,
+          isAdmin: true,
           avatar: true,
           password: true,
           createdAt: true,
@@ -74,13 +75,23 @@ export class UserService {
         },
       });
 
-      if (!user) {
+      console.log(user);
+
+      if (user === null) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
 
       return user;
     } catch (err) {
-      throw new HttpException(err.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
+      console.error('Error fetching user:', err);
+      throw new HttpException(
+        'Error with finding user',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -144,6 +155,39 @@ export class UserService {
       return user;
     } catch (err) {
       throw new HttpException('Error with finding user', HttpStatus.NOT_FOUND);
+    }
+  }
+
+  async updateUser(
+    email?: string,
+    name?: string,
+    avatar?: string,
+  ): Promise<UserDTO> {
+    try {
+      const user = await this.prisma.user.update({
+        where: {
+          email,
+        },
+        data: {
+          name,
+          avatar,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      return user;
+    } catch (err) {
+      throw new HttpException('Error with updating user', HttpStatus.NOT_FOUND);
     }
   }
 }

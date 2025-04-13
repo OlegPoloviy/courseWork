@@ -1,4 +1,4 @@
-import { IsEmail, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsEmail, IsString, Max, Min } from 'class-validator';
 
 export class UserDTO {
   id: string;
@@ -11,6 +11,9 @@ export class UserDTO {
   @Max(24)
   name: string | null;
   avatar?: string | null;
+
+  @IsBoolean()
+  isAdmin?: boolean | null;
 
   @Min(6)
   @Max(36)

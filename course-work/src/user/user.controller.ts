@@ -6,6 +6,8 @@ import {
   Req,
   UseGuards,
   Param,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { UserService } from './user.service';
@@ -20,6 +22,25 @@ export class UserController {
   @Get(':id')
   async getUserProfile(@Param('id') id: string) {
     return await this.userService.findUserById(id);
+  }
+
+  @Post('update')
+  async updateUserInfo(@Body() UserDto: UserDTO) {
+    const { email, name, avatar } = UserDto;
+    return await this.userService.updateUser(
+      email ?? undefined,
+      name ?? undefined,
+      avatar ?? undefined,
+    );
+  }
+
+  @Get()
+  async getUserByEmail(@Query('email') email: string) {
+    console.log(`Received request for email: ${email}`);
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    return await this.userService.findUserByEmail(email);
   }
 
   // @Get()
