@@ -33,3 +33,16 @@ model RefreshToken {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model MilitaryEquipment {
+  id          String   @id @default(uuid())
+  name        String
+  type        String 
+  country     String 
+  inService   Boolean @default(true)
+  description String?
+  year        Int?
+  imageUrl    String? 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
