@@ -1,9 +1,7 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -32,4 +30,20 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MilitaryEquipment {
+  id            String   @id @default(uuid())
+  name          String
+  type          String   
+  country       String  
+  yearProduced  Int?    
+  inService     Boolean  @default(true) 
+  description   String   @db.Text 
+  specifications Json?    
+  image         String  
+  gallery       String[] 
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?  
 }
