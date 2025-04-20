@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Req,
   UseGuards,
   Param,
   Query,

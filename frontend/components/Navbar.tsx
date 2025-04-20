@@ -11,8 +11,6 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ user }) => {
   const { data: session, status } = useSession();
 
-  console.log(session);
-
   if (status === "loading")
     return (
       <Box
@@ -88,7 +86,9 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         <Flex alignItems="center" gap={4}>
           <Box display={"flex"} alignItems="center" gap={2}>
             <Image
-              src={session.user.image || "/default-avatar.png"}
+              src={
+                session.user.image || "/Profile_avatar_placeholder_large.png"
+              }
               alt="User avatar"
               boxSize="32px"
               borderRadius="full"
