@@ -74,7 +74,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
         {session.user?.isAdmin && (
           <Link
-            href="/home"
+            href="/home/admin"
             fontSize="lg"
             fontWeight="bold"
             _hover={{ textDecoration: "none", color: "blue.500" }}

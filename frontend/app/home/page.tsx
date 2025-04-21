@@ -256,8 +256,9 @@ export default function Home() {
                 variant="outline"
                 height="100px"
                 _hover={{ bg: "blue.50" }}
+                onClick={() => router.push("/home/equipmentList")}
               >
-                Personnel Records
+                Equipment Records
               </Button>
               <Button
                 size="lg"
