@@ -10,6 +10,10 @@ const EquipmentList = () => {
   const [equipment, setEquipment] = useState<Equipment[] | null | undefined>(
     []
   );
+  const [filteredEquipment, setFilteredEquipment] = useState<
+    Equipment[] | null | undefined
+  >([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -33,7 +37,11 @@ const EquipmentList = () => {
           .then((res) => res.json())
           .then((data) => {
             console.log(data);
-            setEquipment(Array.isArray(data) ? data : data?.equipment ?? []);
+            const equipmentData = Array.isArray(data)
+              ? data
+              : data?.equipment ?? [];
+            setEquipment(equipmentData);
+            setFilteredEquipment(equipmentData);
           });
         setLoading(false);
       } catch (err) {
@@ -43,28 +51,56 @@ const EquipmentList = () => {
     if (session) fetchEquipment();
   }, [session]);
 
+  // Filter equipment whenever searchTerm changes
+  useEffect(() => {
+    if (!equipment) return;
+
+    if (searchTerm.trim() === "") {
+      setFilteredEquipment(equipment);
+    } else {
+      const filtered = equipment.filter(
+        (item) =>
+          item.name &&
+          item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredEquipment(filtered);
+    }
+  }, [searchTerm, equipment]);
+
+  // Handle search input changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
   return (
     <Box textAlign={"center"} p={4}>
-      <Box display={"flex"} justifyContent={"space-between"}>
+      <Box display={"flex"} justifyContent={"space-between"} mb={4}>
         <Text fontSize={"2xl"} as={"h1"}>
           Equipment List
         </Text>
         <Input
           width={"30%"}
           justifySelf={"flex-end"}
-          placeholder="Enter title..."
+          placeholder="Filter by title..."
+          value={searchTerm}
+          onChange={handleSearchChange}
         />
       </Box>
 
       {loading ? (
-        <Text>Loading,please wait...</Text>
-      ) : (
-        equipment &&
-        equipment.map((el) => (
+        <Text>Loading, please wait...</Text>
+      ) : filteredEquipment && filteredEquipment.length > 0 ? (
+        filteredEquipment.map((el) => (
           <Box key={el.id} p={4}>
             <EquipmentListItem equipment={el} />
           </Box>
         ))
+      ) : (
+        <Text mt={4}>
+          No equipment found matching {'"'}
+          {searchTerm}
+          {'"'}
+        </Text>
       )}
     </Box>
   );
