@@ -33,22 +33,7 @@ model RefreshToken {
 }
 
 model MilitaryEquipment {
-<<<<<<< HEAD
-  id            String   @id @default(uuid())
-  name          String
-  type          String   
-  country       String  
-  yearProduced  Int?    
-  inService     Boolean  @default(true) 
-  description   String   @db.Text 
-  specifications Json?    
-  image         String  
-  gallery       String[] 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  createdBy     String?  
-}
-=======
+
   id          String   @id @default(uuid())
   name        String
   type        String 
@@ -60,4 +45,3 @@ model MilitaryEquipment {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
->>>>>>> 40a10db307627096f3a56129ec49f7cc93919bbb
