@@ -5,11 +5,11 @@ import EquipmentListItem from "@/components/equipment/EquipmentListItem";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Equipment } from "@/types/Equipment";
+import { useEquipmentStore } from "@/app/store/equipmentStore";
 
 const EquipmentList = () => {
-  const [equipment, setEquipment] = useState<Equipment[] | null | undefined>(
-    []
-  );
+  const equipment = useEquipmentStore((state) => state.equipment);
+  const setEquipment = useEquipmentStore((state) => state.setEquipment);
   const [filteredEquipment, setFilteredEquipment] = useState<
     Equipment[] | null | undefined
   >([]);
@@ -71,6 +71,8 @@ const EquipmentList = () => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
+
+  console.log(equipment);
 
   return (
     <Box textAlign={"center"} p={4}>

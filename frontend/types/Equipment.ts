@@ -4,7 +4,9 @@ export interface Equipment {
   type: string;
   country: string;
   inService: boolean;
+  year: string;
   description?: string;
+  technicalSpecs?: string;
   imageUrl?: string;
   createdAt: string;
 }

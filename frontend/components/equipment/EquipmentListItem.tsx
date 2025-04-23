@@ -1,4 +1,4 @@
-import { Box, Image, Text, Flex, Button, Badge } from "@chakra-ui/react";
+import { Box, Image, Text, Flex, Link, Badge } from "@chakra-ui/react";
 import { Equipment } from "@/types/Equipment";
 
 const EquipmentListItem = ({ equipment }: { equipment: Equipment }) => {
@@ -30,31 +30,12 @@ const EquipmentListItem = ({ equipment }: { equipment: Equipment }) => {
               minHeight="120px"
               objectFit="cover"
               borderRadius="md"
-              fallback={
-                <Box
-                  width="100%"
-                  minHeight="120px"
-                  bg="gray.700"
-                  borderRadius="md"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Text
-                    fontSize="xs"
-                    color="gray.500"
-                    textAlign="center"
-                    px={2}
-                  >
-                    No image
-                  </Text>
-                </Box>
-              }
             />
           ) : (
             <Box
               width="100%"
               minHeight="120px"
+              height={"100%"}
               bg="gray.700"
               borderRadius="md"
               display="flex"
@@ -97,7 +78,7 @@ const EquipmentListItem = ({ equipment }: { equipment: Equipment }) => {
           </Box>
 
           <Box mb={2}>
-            <Text fontSize="sm" color="gray.400" noOfLines={3}>
+            <Text fontSize="sm" color="gray.400">
               {equipment.description
                 ? equipment.description
                 : "No description available for this equipment."}
@@ -113,14 +94,16 @@ const EquipmentListItem = ({ equipment }: { equipment: Equipment }) => {
       </Flex>
 
       <Box alignSelf="flex-end" mt={1}>
-        <Button
+        <Link
           colorScheme="teal"
-          size="xs"
-          _hover={{ bg: "teal.700" }}
+          _hover={{ bg: "teal.700", textDecoration: "none" }}
           bg="teal.600"
+          href={`/home/equipmentList/${equipment.id}`}
+          p={2}
+          textDecor={"none"}
         >
           Details
-        </Button>
+        </Link>
       </Box>
     </Box>
   );

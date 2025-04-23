@@ -17,6 +17,7 @@ const schema = z.object({
   equipmentType: z.string().min(3, "Type must be at least 3 characters long"),
   description: z.string(),
   year: z.number().min(1900, "Year must be at least 1900"),
+  technicalSpecs: z.string().optional(),
 });
 
 const CreateForm = () => {
@@ -26,6 +27,7 @@ const CreateForm = () => {
   const [description, setDescription] = useState("");
   const [year, setYear] = useState<number | undefined>(undefined);
   const [inService, setInService] = useState(false);
+  const [technicalSpecs, setTechnicalSpecs] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
@@ -40,6 +42,7 @@ const CreateForm = () => {
         equipmentCountry,
         description,
         year: year || 0,
+        technicalSpecs,
       });
       setErrors({});
       return true;
@@ -110,6 +113,7 @@ const CreateForm = () => {
           year,
           inService,
           imageUrl: image,
+          technicalSpecs,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -124,9 +128,11 @@ const CreateForm = () => {
 
       setEquipmentName("");
       setEquipmentType("");
+      setEquipmentCountry("");
       setDescription("");
       setYear(undefined);
       setInService(false);
+      setTechnicalSpecs("");
       setImage(null);
     } catch (error) {
       console.error("Error uploading equipment data:", error);
@@ -219,6 +225,22 @@ const CreateForm = () => {
         </Box>
         <Box marginBottom="20px">
           <Field.Root>
+            <Field.Label>Enter the technical specifications</Field.Label>
+            <Textarea
+              placeholder="Weight: 73.6 tonnes; Length: 9.77 m; Width: 3.66 m; ..."
+              value={technicalSpecs}
+              onChange={(e) => setTechnicalSpecs(e.target.value)}
+              minHeight="120px"
+            />
+            {errors.technicalSpecs && (
+              <Text color="red.500" fontSize="sm">
+                {errors.technicalSpecs}
+              </Text>
+            )}
+          </Field.Root>
+        </Box>
+        <Box marginBottom="20px">
+          <Field.Root>
             <Field.Label>Enter the year</Field.Label>
             <Input
               type="number"
@@ -271,7 +293,12 @@ const CreateForm = () => {
           id="avatar-upload"
           onChange={handleImageUpload}
         />
-        <Button onClick={handleUploadData} colorScheme="teal">
+        <Button
+          onClick={handleUploadData}
+          colorScheme="teal"
+          loadingText="Uploading..."
+          width="100%"
+        >
           Upload data
         </Button>
       </Box>
