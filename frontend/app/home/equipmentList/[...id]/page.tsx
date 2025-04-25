@@ -9,6 +9,8 @@ import {
   Icon,
   Heading,
   SimpleGrid,
+  Button,
+  Link,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useEquipmentStore } from "@/app/store/equipmentStore";
@@ -19,6 +21,8 @@ import { FaCalendarAlt, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 const EquipmentInfoPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [loading, setLoading] = useState(true);
   const [equipment, setEquipment] = useState<Equipment | undefined>(undefined);
+  const [wikipediaUrl, setWikipediaUrl] = useState<string | null>(null);
+  const [loadingWiki, setLoadingWiki] = useState(false);
 
   const { id } = use(params);
 
@@ -35,7 +39,40 @@ const EquipmentInfoPage = ({ params }: { params: Promise<{ id: string }> }) => {
       useEquipmentStore.getState().equipment
     );
     console.log("Found equipment:", item);
+
+    // Fetch Wikipedia URL when equipment data is available
+    if (item) {
+      fetchWikipediaUrl(item.name);
+    }
   }, [id, getEquipmentById]);
+
+  const fetchWikipediaUrl = async (equipmentName: string) => {
+    setLoadingWiki(true);
+    try {
+      const encodedName = encodeURIComponent(equipmentName);
+
+      const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodedName}&format=json&origin=*`;
+
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+
+      if (data.query.search.length > 0) {
+        const topResult = data.query.search[0];
+        const pageTitle = encodeURIComponent(topResult.title);
+
+        // Generate Wikipedia URL
+        const wikipediaPageUrl = `https://en.wikipedia.org/wiki/${pageTitle}`;
+        setWikipediaUrl(wikipediaPageUrl);
+      } else {
+        setWikipediaUrl(null);
+      }
+    } catch (error) {
+      console.error("Error fetching Wikipedia information:", error);
+      setWikipediaUrl(null);
+    } finally {
+      setLoadingWiki(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -70,9 +107,22 @@ const EquipmentInfoPage = ({ params }: { params: Promise<{ id: string }> }) => {
         {/* Left Side - Equipment Details */}
         <Box flex="1">
           <Stack>
-            <Heading size="xl" fontWeight="bold" color="gray.200">
-              {equipment.name}
-            </Heading>
+            <Flex justify="space-between" wrap="wrap" align="center">
+              <Heading size="xl" fontWeight="bold" color="gray.200">
+                {equipment.name}
+              </Heading>
+
+              <Link href={wikipediaUrl || "#"} target="_blank">
+                <Button
+                  colorScheme="blue"
+                  size="sm"
+                  loadingText="Searching..."
+                  variant="outline"
+                >
+                  Wikipedia
+                </Button>
+              </Link>
+            </Flex>
 
             <Flex wrap="wrap" gap={2} mt={2}>
               <Badge
@@ -176,41 +226,57 @@ const EquipmentInfoPage = ({ params }: { params: Promise<{ id: string }> }) => {
                   borderLeft="4px solid"
                   borderColor="blue.500"
                 >
-                  <SimpleGrid columns={{ base: 1, md: 2 }} p={4}>
-                    {equipment.technicalSpecs.split(";").map((spec, index) => {
-                      if (!spec.trim()) return null;
+                  <SimpleGrid columns={{ base: 1, md: 2 }}>
+                    {equipment.technicalSpecs
+                      .replace(/,/g, ";")
+                      .split(";")
+                      .map((spec, index) => {
+                        if (!spec.trim()) return null;
 
-                      const [key, value] = spec
-                        .split(":")
-                        .map((item) => item.trim());
+                        // Handle both formats: "key: value" and "key - value"
+                        let key, value;
+                        if (spec.includes(":")) {
+                          [key, value] = spec
+                            .split(":")
+                            .map((item) => item.trim());
+                        } else if (spec.includes("-")) {
+                          [key, value] = spec
+                            .split("-")
+                            .map((item) => item.trim());
+                        } else {
+                          key = spec.trim();
+                          value = "";
+                        }
 
-                      return (
-                        <Box
-                          key={index}
-                          display="flex"
-                          alignItems="flex-start"
-                          p={2}
-                        >
+                        if (!key) return null;
+
+                        return (
                           <Box
-                            bg="gray.500"
-                            color="white"
-                            px={2}
-                            py={1}
-                            borderRadius="md"
-                            mr={3}
-                            fontSize="sm"
-                            fontWeight="medium"
-                            minWidth="100px"
-                            textAlign="center"
+                            key={index}
+                            display="flex"
+                            alignItems="flex-start"
+                            p={2}
                           >
-                            {key}
+                            <Box
+                              bg="blue.500"
+                              color="white"
+                              px={2}
+                              py={1}
+                              borderRadius="md"
+                              mr={3}
+                              fontSize="sm"
+                              fontWeight="medium"
+                              minWidth="80px"
+                              textAlign="center"
+                            >
+                              {key}
+                            </Box>
+                            <Text color="gray.300" fontSize="md" pt="2px">
+                              {value}
+                            </Text>
                           </Box>
-                          <Text color="gray.300" fontSize="md" pt="2px">
-                            {value}
-                          </Text>
-                        </Box>
-                      );
-                    })}
+                        );
+                      })}
                   </SimpleGrid>
                 </Box>
               </Box>

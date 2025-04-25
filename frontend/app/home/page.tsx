@@ -8,11 +8,11 @@ import {
   Button,
   Stack,
   Grid,
-  HStack,
   Icon,
   VStack,
   InputGroup,
   InputAddon,
+  Image,
 } from "@chakra-ui/react";
 import { CiSearch, CiImageOn } from "react-icons/ci";
 import { useState, useEffect } from "react";
@@ -20,22 +20,125 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
+interface SearchParams {
+  query?: string; // Основний пошуковий запит для універсального пошуку
+  name?: string;
+  type?: string;
+  country?: string;
+  inService?: boolean;
+  description?: string;
+  techSpecs?: string;
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useState<SearchParams>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const router = useRouter();
 
   const { data: session, status } = useSession();
 
+  const parseSearchQuery = (query: string): SearchParams => {
+    const params: SearchParams = {};
+
+    // Розбиваємо по пробілах, але зберігаємо фрази в лапках як єдине ціле
+    const parts = query.match(/[^\s"]+|"([^"]*)"/g) || [];
+
+    // Відстежуємо, які специфічні параметри були встановлені
+    let hasSpecificParams = false;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i].replace(/"/g, ""); // Видаляємо лапки
+
+      // Шукаємо ключові слова з двокрапкою (name:, type:, country: тощо)
+      if (part.includes(":") && i < parts.length) {
+        hasSpecificParams = true;
+        const [key, value] = part.split(":");
+
+        // Якщо значення порожнє, беремо наступну частину (для випадків як "country: Germany")
+        const paramValue = value || parts[i + 1]?.replace(/"/g, "");
+        if (!value && parts[i + 1]) i++; // Пропускаємо наступну частину, якщо використали її як значення
+
+        switch (key.toLowerCase()) {
+          case "name":
+            params.name = paramValue;
+            break;
+          case "type":
+            params.type = paramValue;
+            break;
+          case "country":
+            params.country = paramValue;
+            break;
+          case "inservice":
+            params.inService = paramValue?.toLowerCase() === "true";
+            break;
+          case "description":
+            params.description = paramValue;
+            break;
+          case "techspecs":
+            params.techSpecs = paramValue;
+            break;
+        }
+      } else {
+        // Слова без ключових слів додаємо до загального запиту
+        if (!params.query) {
+          params.query = part;
+        } else {
+          params.query += " " + part;
+        }
+      }
+    }
+
+    // Якщо немає специфічних параметрів і є загальний запит,
+    // встановлюємо весь початковий пошуковий запит як query
+    if (!hasSpecificParams && !params.query) {
+      params.query = query;
+    }
+
+    return params;
+  };
+
+  const createSearchUrl = (baseUrl: string, params: SearchParams): string => {
+    const urlParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        urlParams.append(key, value.toString());
+      }
+    });
+
+    const queryString = urlParams.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  };
+
   useEffect(() => {
     if (!session && status != "loading") {
       router.push("/");
     }
-  }, [session]);
+  }, [session, router, status]);
 
   const handleSearch = () => {
-    console.log("Searching for:", searchQuery);
+    if (!searchQuery.trim()) {
+      toast.error("Please enter a search query");
+      return;
+    }
+
+    const searchParams = parseSearchQuery(searchQuery);
+
+    const hasSearchParams = Object.values(searchParams).some(
+      (value) => value !== undefined && value !== ""
+    );
+
+    if (!hasSearchParams) {
+      toast.error("Could not identify any search parameters");
+      return;
+    }
+
+    const apiUrl = createSearchUrl("/home/equipmentSearch", searchParams);
+    console.log("API URL for fetch:", apiUrl);
+
+    router.push(apiUrl);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +216,7 @@ export default function Home() {
         <Container maxW="container.xl" position="relative" zIndex={2}>
           <Stack align="center" textAlign="center" gap={8}>
             <Heading as="h1" size="2xl" fontWeight="bold">
-              Military Search System in our database
+              Search equipment in our database
             </Heading>
             <Text fontSize="xl" maxW="2xl">
               Access comprehensive military information, personnel records, and
@@ -125,7 +228,7 @@ export default function Home() {
               <InputGroup>
                 <>
                   <Input
-                    placeholder="Search for military personnel, operations, or records..."
+                    placeholder="Search across all fields or use filters like name:T-72..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     bg="white"
@@ -175,7 +278,7 @@ export default function Home() {
                   <Text>Drag and drop an image or click to upload</Text>
                   {imagePreview && (
                     <Box mt={2}>
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Preview"
                         style={{ maxWidth: "200px", maxHeight: "200px" }}
