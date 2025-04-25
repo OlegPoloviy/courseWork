@@ -42,23 +42,19 @@ export default function Home() {
   const parseSearchQuery = (query: string): SearchParams => {
     const params: SearchParams = {};
 
-    // Розбиваємо по пробілах, але зберігаємо фрази в лапках як єдине ціле
     const parts = query.match(/[^\s"]+|"([^"]*)"/g) || [];
 
-    // Відстежуємо, які специфічні параметри були встановлені
     let hasSpecificParams = false;
 
     for (let i = 0; i < parts.length; i++) {
-      const part = parts[i].replace(/"/g, ""); // Видаляємо лапки
+      const part = parts[i].replace(/"/g, "");
 
-      // Шукаємо ключові слова з двокрапкою (name:, type:, country: тощо)
       if (part.includes(":") && i < parts.length) {
         hasSpecificParams = true;
         const [key, value] = part.split(":");
 
-        // Якщо значення порожнє, беремо наступну частину (для випадків як "country: Germany")
         const paramValue = value || parts[i + 1]?.replace(/"/g, "");
-        if (!value && parts[i + 1]) i++; // Пропускаємо наступну частину, якщо використали її як значення
+        if (!value && parts[i + 1]) i++;
 
         switch (key.toLowerCase()) {
           case "name":
@@ -81,7 +77,6 @@ export default function Home() {
             break;
         }
       } else {
-        // Слова без ключових слів додаємо до загального запиту
         if (!params.query) {
           params.query = part;
         } else {
@@ -90,8 +85,6 @@ export default function Home() {
       }
     }
 
-    // Якщо немає специфічних параметрів і є загальний запит,
-    // встановлюємо весь початковий пошуковий запит як query
     if (!hasSpecificParams && !params.query) {
       params.query = query;
     }
