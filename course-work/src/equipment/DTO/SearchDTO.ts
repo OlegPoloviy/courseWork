@@ -2,20 +2,23 @@ import { IsString, IsBoolean } from 'class-validator';
 
 export class SearchDTO {
   @IsString()
-  name: string;
+  query?: string;
 
   @IsString()
-  type: string;
+  name?: string;
 
   @IsString()
-  country: string;
+  type?: string;
+
+  @IsString()
+  description?: string;
 
   @IsBoolean()
-  inService: boolean;
+  inService?: boolean;
 
   @IsString()
-  description: string;
+  country?: string;
 
   @IsString()
-  techSpecs: string;
+  techSpecs?: string;
 }

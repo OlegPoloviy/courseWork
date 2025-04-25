@@ -45,7 +45,7 @@ export class EquipmentService {
 
   async findEquipment(details: SearchDTO): Promise<EquipmentDTO[]> {
     try {
-      const { name, type, description, inService, country, techSpecs } =
+      const { query, name, type, description, inService, country, techSpecs } =
         details;
 
       const searchConditions: Prisma.MilitaryEquipmentWhereInput = {
@@ -62,6 +62,16 @@ export class EquipmentService {
           ? { techSpecs: { contains: techSpecs, mode: 'insensitive' } }
           : {}),
       };
+
+      if (query) {
+        searchConditions.OR = [
+          { name: { contains: query, mode: 'insensitive' } },
+          { type: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+          { country: { contains: query, mode: 'insensitive' } },
+          { technicalSpecs: { contains: query, mode: 'insensitive' } },
+        ];
+      }
 
       const equipment = await this.prisma.militaryEquipment.findMany({
         where: searchConditions,
