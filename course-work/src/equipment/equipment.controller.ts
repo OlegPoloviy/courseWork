@@ -1,5 +1,5 @@
 import { EquipmentDTO } from './DTO/EquipmentDTO';
-import { Controller, Get, UseGuards, Post, Body } from '@nestjs/common';
+import { Controller, Get, UseGuards, Post, Body, Query } from '@nestjs/common';
 import { EquipmentService } from './equipment.service';
 import { JWTGUard } from 'src/auth/guards/jwt.auth.guard';
 
@@ -17,5 +17,11 @@ export class EquipmentController {
   @Post()
   async create(@Body() equipment: EquipmentDTO) {
     return this.equipmentService.createEquipment(equipment);
+  }
+
+  @UseGuards(JWTGUard)
+  @Get('/search')
+  async search(@Query() params) {
+    return this.equipmentService.findEquipment(params);
   }
 }
