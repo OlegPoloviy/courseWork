@@ -51,7 +51,6 @@ const EquipmentList = () => {
     if (session) fetchEquipment();
   }, [session]);
 
-  // Filter equipment whenever searchTerm changes
   useEffect(() => {
     if (!equipment) return;
 
