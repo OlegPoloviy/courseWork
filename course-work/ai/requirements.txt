@@ -1,10 +1,30 @@
+# Flask & CORS
 flask==2.3.3
 flask-cors==4.0.0
+
+# AWS SDK
 boto3==1.28.38
+
+# PyTorch (GPU, CUDA 12.1 – стабільна і сумісна з 12.9 драйвером)
 torch==2.6.0
+torchvision==0.21.0
+torchaudio==2.6.0
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# OpenAI CLIP
 git+https://github.com/openai/CLIP.git
-Pillow==10.1.0
-numpy==1.26.0
+
+# Зображення
+Pillow==11.2.1
+
+# Наука
+numpy>=2.0.0
+
+# HTTP
 requests==2.31.0
+
+# .env
 python-dotenv==1.0.0
+
+# Тестування
 pytest==7.4.0

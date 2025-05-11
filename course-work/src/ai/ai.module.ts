@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { FileModule } from 'src/fileHandling/file.module';
 
 @Module({
   imports: [
@@ -9,6 +10,7 @@ import { AiService } from './ai.service';
       timeout: 5000,
       maxRedirects: 5,
     }),
+    FileModule,
   ],
   controllers: [AiController],
   exports: [AiService],

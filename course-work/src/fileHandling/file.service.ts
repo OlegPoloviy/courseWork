@@ -27,9 +27,11 @@ export class FileService {
     });
   }
 
-  async uploadFileToAWS(file: Express.Multer.File): Promise<{ url: string }> {
+  async uploadFileToAWS(
+    file: Express.Multer.File,
+  ): Promise<{ url: string; key: string }> {
     const bucketName = process.env.AWS_S3_BUCKET;
-    const key = `uploads/${Date.now()}-search`;
+    const key = `uploads/${Date.now()}-${this.generateRandomString(8)}`;
 
     const compressedBuffer = await gzipAsync(file.buffer);
 
@@ -42,19 +44,20 @@ export class FileService {
     });
 
     await this.s3Client.send(command);
-
     console.log(`File compressed and uploaded successfully. ${key}`);
+
     return {
       url: `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
+      key: key,
     };
   }
 
   async uploadFileToAWSWithOptions(
     file: Express.Multer.File,
     options: { compress?: boolean } = {},
-  ): Promise<{ url: string }> {
+  ): Promise<{ url: string; key: string }> {
     const bucketName = process.env.AWS_S3_BUCKET;
-    const key = `uploads/${Date.now()}-search`;
+    const key = `uploads/${Date.now()}-${this.generateRandomString(8)}`;
 
     let fileBuffer = file.buffer;
     let contentEncoding: string | undefined;
@@ -73,12 +76,28 @@ export class FileService {
     });
 
     await this.s3Client.send(command);
-
     console.log(
       `File ${options.compress ? 'compressed and ' : ''}uploaded successfully. ${key}`,
     );
+
     return {
       url: `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
+      key: key,
     };
+  }
+
+  // Helper method to generate a random string
+  private generateRandomString(length: number): string {
+    const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(
+        Math.floor(Math.random() * characters.length),
+      );
+    }
+
+    return result;
   }
 }
