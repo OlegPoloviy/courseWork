@@ -40,7 +40,6 @@ const EquipmentInfoPage = ({ params }: { params: Promise<{ id: string }> }) => {
     );
     console.log("Found equipment:", item);
 
-    // Fetch Wikipedia URL when equipment data is available
     if (item) {
       fetchWikipediaUrl(item.name);
     }

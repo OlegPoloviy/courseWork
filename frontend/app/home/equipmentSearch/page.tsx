@@ -1,178 +1,107 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import {
-  Box,
-  Text,
-  Heading,
-  Spinner,
-  Grid,
-  Card,
-  CardBody,
-  Stack,
-  Image,
-  Badge,
-} from "@chakra-ui/react";
-import axios from "axios";
-
-interface Equipment {
-  id: string;
-  name: string;
-  type: string;
-  country: string;
-  inService: boolean;
-  description?: string;
-  techSpecs?: string;
-  year?: number;
-  imageUrl?: string;
-}
+import { Box, Text } from "@chakra-ui/react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { Equipment } from "@/types/Equipment";
+import EquipmentListItem from "@/components/equipment/EquipmentListItem";
 
 const EquipmentSearchPage = () => {
   const searchParams = useSearchParams();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchParam, setSearchParam] = useState();
+  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!session && status !== "loading") {
+      router.push("/");
+    }
+  }, [session, status, router]);
 
   useEffect(() => {
     const fetchEquipment = async () => {
+      if (status === "loading" || !session) return;
+
+      setIsLoading(true);
+      const params = new URLSearchParams();
+
+      if (searchParams.has("query"))
+        params.append("query", searchParams.get("query")!);
+      if (searchParams.has("name"))
+        params.append("name", searchParams.get("name")!);
+      if (searchParams.has("type"))
+        params.append("type", searchParams.get("type")!);
+      if (searchParams.has("country"))
+        params.append("country", searchParams.get("country")!);
+      if (searchParams.has("description"))
+        params.append("description", searchParams.get("description")!);
+      if (searchParams.has("techSpecs"))
+        params.append("techSpecs", searchParams.get("techSpecs")!);
+      if (searchParams.has("inService"))
+        params.append("inService", searchParams.get("inService")!);
+
+      setSearchParam(params);
+
       try {
-        setLoading(true);
-
-        // Створюємо URLSearchParams з параметрів запиту
-        const params = new URLSearchParams();
-
-        // Додаємо всі параметри з URL
-        if (searchParams.has("query"))
-          params.append("query", searchParams.get("query")!);
-        if (searchParams.has("name"))
-          params.append("name", searchParams.get("name")!);
-        if (searchParams.has("type"))
-          params.append("type", searchParams.get("type")!);
-        if (searchParams.has("country"))
-          params.append("country", searchParams.get("country")!);
-        if (searchParams.has("description"))
-          params.append("description", searchParams.get("description")!);
-        if (searchParams.has("techSpecs"))
-          params.append("techSpecs", searchParams.get("techSpecs")!);
-        if (searchParams.has("inService"))
-          params.append("inService", searchParams.get("inService")!);
-
-        // Виконуємо запит на бекенд
-        const response = await axios.get(
-          `/api/equipment/search?${params.toString()}`
+        const response = await fetch(
+          `http://localhost:3001/equipment/search?${params}`,
+          {
+            headers: {
+              Authorization: `Bearer ${session?.accessToken}`,
+            },
+          }
         );
 
-        setEquipment(response.data);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching equipment:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch equipment"
-        );
+        const data = await response.json();
+        console.log("API response:", data);
+
+        if (Array.isArray(data)) {
+          setEquipment(data);
+        } else if (
+          data &&
+          typeof data === "object" &&
+          Array.isArray(data.items)
+        ) {
+          setEquipment(data.items);
+        } else {
+          console.error("Unexpected API response format:", data);
+          setEquipment([]);
+        }
+      } catch (error) {
+        console.error("Error fetching equipment:", error);
         setEquipment([]);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchEquipment();
-  }, [searchParams]);
+  }, [searchParams, session, status]);
 
-  // Отримуємо пошуковий запит для відображення
-  const searchQueryText = () => {
-    const query = searchParams.get("query");
-    const name = searchParams.get("name");
-    const type = searchParams.get("type");
-    const country = searchParams.get("country");
-
-    if (query) return `"${query}"`;
-
-    const filters = [];
-    if (name) filters.push(`name: ${name}`);
-    if (type) filters.push(`type: ${type}`);
-    if (country) filters.push(`country: ${country}`);
-
-    return filters.length > 0 ? filters.join(", ") : "all equipment";
-  };
+  if (status === "loading") {
+    return <Text>Loading session...</Text>;
+  }
 
   return (
-    <Box p={6}>
-      <Heading as="h1" size="xl" mb={6}>
-        Search Results
-      </Heading>
-
-      <Text fontSize="lg" mb={6}>
-        Equipment matching your search for {searchQueryText()}
+    <Box textAlign="center" p={4}>
+      <Text fontSize="2xl" as="h1" mb={4}>
+        Equipment List based on your search
       </Text>
 
-      {loading ? (
-        <Box textAlign="center" py={10}>
-          <Spinner size="xl" />
-          <Text mt={4}>Loading equipment data...</Text>
-        </Box>
-      ) : error ? (
-        <Box
-          p={5}
-          bg="red.50"
-          borderRadius="md"
-          borderLeft="4px"
-          borderColor="red.500"
-        >
-          <Text color="red.500">{error}</Text>
-        </Box>
-      ) : equipment.length === 0 ? (
-        <Box
-          p={5}
-          bg="blue.50"
-          borderRadius="md"
-          borderLeft="4px"
-          borderColor="blue.500"
-        >
-          <Text>No equipment found matching your search criteria.</Text>
+      {isLoading ? (
+        <Text>Loading equipment...</Text>
+      ) : equipment.length > 0 ? (
+        <Box display="flex" flexDirection="column" gap={2}>
+          {equipment.map((el) => (
+            <Box key={el.id} p={2}>
+              <EquipmentListItem equipment={el} />
+            </Box>
+          ))}
         </Box>
       ) : (
-        <Grid
-          templateColumns={{
-            base: "1fr",
-            md: "repeat(2, 1fr)",
-            lg: "repeat(3, 1fr)",
-          }}
-          gap={6}
-        >
-          {equipment.map((item) => (
-            <Card key={item.id} overflow="hidden">
-              {item.imageUrl && (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.name}
-                  height="200px"
-                  objectFit="cover"
-                />
-              )}
-              <CardBody>
-                <Stack>
-                  <Heading size="md">{item.name}</Heading>
-
-                  <Box display="flex" gap={2}>
-                    <Badge colorScheme="blue">{item.type}</Badge>
-                    <Badge colorScheme="green">{item.country}</Badge>
-                    <Badge colorScheme={item.inService ? "teal" : "gray"}>
-                      {item.inService ? "In Service" : "Not In Service"}
-                    </Badge>
-                  </Box>
-
-                  {item.description && <Text>{item.description}</Text>}
-
-                  {item.year && (
-                    <Text fontSize="sm" color="gray.500">
-                      Year: {item.year}
-                    </Text>
-                  )}
-                </Stack>
-              </CardBody>
-            </Card>
-          ))}
-        </Grid>
+        <Text>No equipment found</Text>
       )}
     </Box>
   );

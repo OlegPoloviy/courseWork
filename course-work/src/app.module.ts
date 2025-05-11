@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { FileModule } from './fileHandling/file.module';
 import { EquipmentModule } from './equipment/equipment.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EquipmentModule } from './equipment/equipment.module';
     AuthModule,
     FileModule,
     EquipmentModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

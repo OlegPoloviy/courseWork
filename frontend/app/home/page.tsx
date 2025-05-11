@@ -18,21 +18,11 @@ import { CiSearch, CiImageOn } from "react-icons/ci";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { SearchParams } from "@/types/SearchParams";
 import toast from "react-hot-toast";
-
-interface SearchParams {
-  query?: string; // Основний пошуковий запит для універсального пошуку
-  name?: string;
-  type?: string;
-  country?: string;
-  inService?: boolean;
-  description?: string;
-  techSpecs?: string;
-}
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchParams, setSearchParams] = useState<SearchParams>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const router = useRouter();

@@ -31,7 +31,6 @@ export class FileService {
     const bucketName = process.env.AWS_S3_BUCKET;
     const key = `uploads/${Date.now()}-search`;
 
-    // Compress the file buffer using gzip
     const compressedBuffer = await gzipAsync(file.buffer);
 
     const command = new PutObjectCommand({
@@ -39,7 +38,7 @@ export class FileService {
       Key: key,
       Body: compressedBuffer,
       ContentType: file.mimetype,
-      ContentEncoding: 'gzip', // Add this header to indicate the content is compressed
+      ContentEncoding: 'gzip',
     });
 
     await this.s3Client.send(command);
@@ -50,7 +49,6 @@ export class FileService {
     };
   }
 
-  // Optional: Method that allows choosing whether to compress or not
   async uploadFileToAWSWithOptions(
     file: Express.Multer.File,
     options: { compress?: boolean } = {},
