@@ -1,0 +1,32 @@
+# Flask & CORS
+flask[async]==2.3.3
+flask-cors==4.0.0
+# AWS SDK
+boto3==1.28.38
+# PyTorch (GPU, CUDA 12.1)
+torch==2.6.0
+torchvision==0.21.0
+torchaudio==2.6.0
+--extra-index-url https://download.pytorch.org/whl/cu121
+# OpenAI CLIP
+git+https://github.com/openai/CLIP.git
+# Зображення
+Pillow==11.2.1
+# Наука
+numpy>=2.0.0
+# HTTP
+requests==2.31.0
+# .env
+python-dotenv==1.0.0
+# SQLAlchemy та асинхронний PostgreSQL драйвер
+sqlalchemy==2.0.27
+# Replace asyncpg with one of these options:
+# Option 1: Try development version of asyncpg
+git+https://github.com/MagicStack/asyncpg.git
+# Option 2: Alternative - comment the above and uncomment one of these
+psycopg[binary]==3.1.12
+# aiopg==1.4.0
+# Тестування
+pytest==7.4.0
+# Асинхронний сервер для Flask
+hypercorn==0.15.0
