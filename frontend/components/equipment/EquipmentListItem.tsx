@@ -34,7 +34,7 @@ const EquipmentListItem = ({ equipment }: { equipment: Equipment }) => {
           ) : (
             <Box
               width="100%"
-              minHeight="120px"
+              minHeight="480px"
               height={"100%"}
               bg="gray.700"
               borderRadius="md"

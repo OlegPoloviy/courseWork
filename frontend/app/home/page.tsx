@@ -148,9 +148,9 @@ export default function Home() {
       }
 
       const formData = new FormData();
-      formData.append("file", imageFile);
+      formData.append("image", imageFile);
 
-      fetch("http://localhost:3001/file", {
+      fetch("http://localhost:3001/ai/search/image", {
         method: "POST",
         body: formData,
         headers: {
@@ -165,7 +165,64 @@ export default function Home() {
         })
         .then((data) => {
           console.log("Success:", data);
-          toast.success("Image search completed");
+
+          if (
+            data.status === "success" &&
+            data.results &&
+            data.results.length > 0
+          ) {
+            // Get the best match (first result which has highest similarity)
+            const bestMatch = data.results[0];
+
+            if (bestMatch.metadata && bestMatch.metadata.militaryEquipment) {
+              const equipment = bestMatch.metadata.militaryEquipment;
+
+              // Get equipment IDs from all results to create a more comprehensive search
+              const equipmentIds = [];
+
+              // First, add the best match ID
+              if (equipment.id) {
+                equipmentIds.push(equipment.id);
+              }
+
+              // Create a search query that will work well with your backend
+              const searchQuery = equipment.name || "";
+
+              // Create search parameters
+              const searchParams = new URLSearchParams();
+
+              // Add the primary search query
+              if (searchQuery) {
+                searchParams.append("query", searchQuery);
+              }
+
+              // Add specific fields if available
+              if (equipment.name) {
+                searchParams.append("name", equipment.name);
+              }
+
+              if (equipment.type) {
+                searchParams.append("type", equipment.type);
+              }
+
+              if (equipment.country) {
+                searchParams.append("country", equipment.country);
+              }
+
+              // Redirect to the equipment search page with these parameters
+              const searchUrl = `/home/equipmentSearch?${searchParams.toString()}`;
+              console.log("Redirecting to:", searchUrl);
+              router.push(searchUrl);
+            } else {
+              // No equipment metadata found in the results
+              toast.error("Equipment details not found in search results");
+              router.push("/home/equipmentSearch");
+            }
+          } else {
+            // No results found
+            toast.error("No matching equipment found");
+            router.push("/home/equipmentSearch");
+          }
         })
         .catch((error) => {
           console.error("Error:", error);

@@ -9,7 +9,7 @@ import EquipmentListItem from "@/components/equipment/EquipmentListItem";
 const EquipmentSearchPage = () => {
   const searchParams = useSearchParams();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [searchParam, setSearchParam] = useState();
+  const [searchParam, setSearchParam] = useState<URLSearchParams | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -41,6 +41,7 @@ const EquipmentSearchPage = () => {
         params.append("techSpecs", searchParams.get("techSpecs")!);
       if (searchParams.has("inService"))
         params.append("inService", searchParams.get("inService")!);
+      if (searchParams.has("id")) params.append("id", searchParams.get("id")!);
 
       setSearchParam(params);
 
