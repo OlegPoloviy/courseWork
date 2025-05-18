@@ -44,8 +44,24 @@ if "schema=" in DATABASE_URL:
 
 
 logger.info(f"Using database URL: {DATABASE_URL}")
-engine = create_async_engine(DATABASE_URL, echo=True)
-async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+# Create engine with better connection handling
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=True,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_recycle=300,  # Recycle connections after 5 minutes
+    pool_pre_ping=True  # Test connections before using them
+)
+
+# Create session factory
+async_session = sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False  # Prevent unexpected flushes
+)
 Base = declarative_base()
 
 # Визначення моделей SQLAlchemy
@@ -86,13 +102,26 @@ s3 = boto3.client(
     's3',
     aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-    region_name=os.getenv('AWS_REGION', 'us-east-1')
+    region_name='us-east-1'
 )
-AWS_S3_BUCKET = os.getenv('AWS_S3_BUCKET')
+AWS_S3_BUCKET = 'course-work-images'
+AWS_REGION = 'eu-north-1'
 
+# First, let's fix the get_s3_url function
+def get_s3_url(key: str) -> str:
+    """Constructs a proper S3 URL for the given key"""
+    # Ensure the key doesn't start with a slash
+    if key.startswith('/'):
+        key = key[1:]
+    
+    # If the key already includes the full URL, return it as is
+    if key.startswith('http'):
+        return key
+        
+    return f"https://{AWS_S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{key}"
 # Перевірка налаштувань S3
-if not AWS_S3_BUCKET or not os.getenv('AWS_ACCESS_KEY_ID') or not os.getenv('AWS_SECRET_ACCESS_KEY'):
-    logger.warning("S3 configuration is incomplete. Please check your .env file.")
+if not os.getenv('AWS_ACCESS_KEY_ID') or not os.getenv('AWS_SECRET_ACCESS_KEY'):
+    logger.warning("S3 credentials are missing. Please check your .env file.")
 
 # Завантаження моделі CLIP
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -161,42 +190,52 @@ def calculate_similarity(vector1: np.ndarray, vector2: np.ndarray) -> float:
 
 async def find_similar_images(session, query_vector: np.ndarray, top_k: int = 5) -> List[Dict]:
     """
-    Знаходить схожі зображення в базі даних
-    
-    Примітка: PostgreSQL + pgvector підтримує пошук подібних векторів напряму в SQL,
-    але для спрощення ми будемо завантажувати вектори і порівнювати їх у Python
+    Finds similar images in the database using a more efficient approach
+    that avoids concurrency issues with asyncpg
     """
     results = []
     
-    # Отримуємо всі ембеддінги з бази даних
-    stmt = select(ImageEmbedding).join(MilitaryEquipment)
-    result = await session.execute(stmt)
-    embeddings = result.scalars().all()
+    # Load all embeddings with their related equipment in a single query
+    stmt = select(
+        ImageEmbedding.id,
+        ImageEmbedding.imageSource,
+        ImageEmbedding.vectorDataJson,
+        MilitaryEquipment.id.label("equipment_id"),
+        MilitaryEquipment.name,
+        MilitaryEquipment.type,
+        MilitaryEquipment.imageUrl,
+        MilitaryEquipment.country
+    ).join(MilitaryEquipment)
     
-    for embedding in embeddings:
-        # Отримуємо вектор з JSON рядка
-        if embedding.vectorDataJson:
-            vector_data = np.array(json.loads(embedding.vectorDataJson))
+    result = await session.execute(stmt)
+    rows = result.all()
+    
+    for row in rows:
+        # Process vector data if available
+        if row.vectorDataJson:
+            # Parse vector from JSON string
+            vector_data = np.array(json.loads(row.vectorDataJson))
             
-            # Розраховуємо подібність
+            # Calculate similarity
             similarity = calculate_similarity(query_vector, vector_data)
             
+            # Add to results
             results.append({
-                "image_id": embedding.id,
+                "image_id": row.id,
                 "similarity": similarity,
                 "metadata": {
                     "militaryEquipment": {
-                        "id": embedding.militaryEquipment.id,
-                        "name": embedding.militaryEquipment.name,
-                        "type": embedding.militaryEquipment.type,
-                        "imageUrl": embedding.militaryEquipment.imageUrl,
-                        "country": embedding.militaryEquipment.country
+                        "id": row.equipment_id,
+                        "name": row.name,
+                        "type": row.type,
+                        "imageUrl": row.imageUrl,
+                        "country": row.country
                     },
-                    "imageSource": embedding.imageSource
+                    "imageSource": row.imageSource
                 }
             })
     
-    # Сортуємо за подібністю і повертаємо перші top_k
+    # Sort by similarity and return top_k
     results.sort(key=lambda x: x["similarity"], reverse=True)
     return results[:top_k]
 
@@ -218,9 +257,10 @@ def echo():
         "status": "success"
     })
 
+# Then, update the embed_image route
 @app.route('/api/embed', methods=['POST'])
 async def embed_image():
-    """Creates and stores image embedding, accepting equipment_id in either top level or metadata"""
+    """Creates and stores image embedding, and updates the equipment's imageUrl field"""
     data = request.json
     if not data:
         return jsonify({"error": "No JSON data provided"}), 400
@@ -233,6 +273,9 @@ async def embed_image():
     metadata = data.get("metadata", {})
     if not equipment_id and isinstance(metadata, dict):
         equipment_id = metadata.get("equipment_id")
+    
+    # Get update_image_url flag - default to True
+    update_image_url = data.get("update_image_url", True)
    
     # Validate required fields
     if not image_source or not equipment_id:
@@ -241,11 +284,32 @@ async def embed_image():
     try:
         start_time = time.time()
         
-        async with async_session() as session:
+        # Use direct asyncpg connection for better stability
+        import asyncpg
+        
+        # Extract connection parameters from DATABASE_URL
+        db_url = DATABASE_URL.replace("postgresql+asyncpg://", "")
+        user_pass, host_db = db_url.split("@")
+        username, password = user_pass.split(":") if ":" in user_pass else (user_pass, "")
+        host_port, database = host_db.split("/")
+        host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
+        
+        conn = None
+        try:
+            # Establish direct connection
+            conn = await asyncpg.connect(
+                user=username,
+                password=password,
+                database=database,
+                host=host,
+                port=port
+            )
+            
             # Check if equipment exists
-            stmt = select(MilitaryEquipment).where(MilitaryEquipment.id == equipment_id)
-            result = await session.execute(stmt)
-            equipment = result.scalar_one_or_none()
+            equipment = await conn.fetchrow(
+                'SELECT id, name FROM "MilitaryEquipment" WHERE id = $1',
+                equipment_id
+            )
             
             if not equipment:
                 return jsonify({"error": f"Military equipment with ID {equipment_id} not found"}), 404
@@ -255,10 +319,14 @@ async def embed_image():
                 # URL image
                 logger.info(f"Loading image from URL: {image_source}")
                 image_bytes = download_from_url(image_source)
+                # For URL images, use the full URL directly for imageUrl
+                image_url_for_update = image_source
             else:
                 # Assume it's an S3 key
                 logger.info(f"Loading image from S3 with key: {image_source}")
                 image_bytes = download_from_s3(AWS_S3_BUCKET, image_source)
+                # For S3 keys, construct the full S3 URL
+                image_url_for_update = get_s3_url(image_source)
        
             if image_bytes is None:
                 return jsonify({"error": "Failed to load image data"}), 500
@@ -266,36 +334,60 @@ async def embed_image():
             # Get embedding
             embedding = get_clip_embedding(image_bytes)
             
-            # Create new embedding record
-            embedding_id = str(uuid4())
-            embedding_record = ImageEmbedding(
-                id=embedding_id,
-                imageSource=image_source,
-                vectorDataJson=json.dumps(embedding.tolist()),  # Convert numpy array to JSON
-                militaryEquipmentId=equipment_id,
-                metadataJson=metadata
-            )
-            
-            # Add and save to database
-            session.add(embedding_record)
-            await session.commit()
+            # Start a transaction
+            async with conn.transaction():
+                # Create new embedding record
+                embedding_id = str(uuid4())
+                
+                # Insert embedding
+                await conn.execute(
+                    '''
+                    INSERT INTO "ImageEmbedding" 
+                    (id, "imageSource", "vectorDataJson", "militaryEquipmentId", "metadataJson", "createdAt", "updatedAt")
+                    VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+                    ''',
+                    embedding_id,
+                    image_source,
+                    json.dumps(embedding.tolist()),
+                    equipment_id,
+                    json.dumps(metadata) if metadata else None
+                )
+                
+                # Update equipment's imageUrl if requested
+                if update_image_url:
+                    await conn.execute(
+                        '''
+                        UPDATE "MilitaryEquipment" 
+                        SET "imageUrl" = $1, "updatedAt" = now()
+                        WHERE id = $2
+                        ''',
+                        image_url_for_update,
+                        equipment_id
+                    )
        
             processing_time = time.time() - start_time
        
             return jsonify({
-                "message": "Embedding created successfully",
+                "message": "Embedding created successfully and equipment imageUrl updated",
                 "embedding_id": embedding_id,
                 "processing_time_seconds": processing_time,
-                "status": "success"
+                "status": "success",
+                "image_url_updated": image_url_for_update if update_image_url else None
             })
+        
+        finally:
+            # Ensure connection is closed
+            if conn is not None:
+                await conn.close()
    
     except Exception as e:
         logger.error(f"Error in embed_image: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Similarly update the bulk_embed_images route
 @app.route('/api/bulk-embed', methods=['POST'])
 async def bulk_embed_images():
-    """Створює і зберігає ембеддінги для багатьох зображень"""
+    """Creates and stores embeddings for multiple images and updates equipment imageUrl fields"""
     data = request.json
     if not data or not isinstance(data.get("images"), list):
         return jsonify({"error": "Invalid request format. Expected 'images' list"}), 400
@@ -303,73 +395,125 @@ async def bulk_embed_images():
     images = data["images"]
     results = []
    
-    async with async_session() as session:
-        for img_data in images:
-            image_source = img_data.get("image_source")
-            equipment_id = img_data.get("equipment_id")
-            metadata = img_data.get("metadata", {})
-           
-            if not image_source or not equipment_id:
-                results.append({
-                    "equipment_id": equipment_id,
-                    "status": "error",
-                    "error": "image_source and equipment_id are required"
-                })
-                continue
-           
-            try:
-                # Перевіряємо, чи існує обладнання
-                stmt = select(MilitaryEquipment).where(MilitaryEquipment.id == equipment_id)
-                result = await session.execute(stmt)
-                equipment = result.scalar_one_or_none()
-                
-                if not equipment:
+    # Use direct asyncpg connection
+    import asyncpg
+    
+    # Extract connection parameters from DATABASE_URL
+    db_url = DATABASE_URL.replace("postgresql+asyncpg://", "")
+    user_pass, host_db = db_url.split("@")
+    username, password = user_pass.split(":") if ":" in user_pass else (user_pass, "")
+    host_port, database = host_db.split("/")
+    host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
+    
+    conn = None
+    try:
+        # Establish direct connection
+        conn = await asyncpg.connect(
+            user=username,
+            password=password,
+            database=database,
+            host=host,
+            port=port
+        )
+        
+        # Start a transaction
+        async with conn.transaction():
+            for img_data in images:
+                image_source = img_data.get("image_source")
+                equipment_id = img_data.get("equipment_id")
+                metadata = img_data.get("metadata", {})
+                update_image_url = img_data.get("update_image_url", True)
+               
+                if not image_source or not equipment_id:
                     results.append({
                         "equipment_id": equipment_id,
                         "status": "error",
-                        "error": f"Military equipment with ID {equipment_id} not found"
+                        "error": "image_source and equipment_id are required"
                     })
                     continue
-                
-                # Завантаження зображення
-                if image_source.startswith("http"):
-                    image_bytes = download_from_url(image_source)
-                else:
-                    # Вважаємо, що це ключ S3
-                    image_bytes = download_from_s3(AWS_S3_BUCKET, image_source)
                
-                # Отримання ембеддінгу
-                embedding = get_clip_embedding(image_bytes)
-                
-                # Створюємо новий запис ембеддінгу
-                embedding_id = str(uuid4())
-                embedding_record = ImageEmbedding(
-                    id=embedding_id,
-                    imageSource=image_source,
-                    vectorDataJson=json.dumps(embedding.tolist()),
-                    militaryEquipmentId=equipment_id,
-                    metadataJson=metadata
-                )
-                
-                # Додаємо до сесії
-                session.add(embedding_record)
-               
-                results.append({
-                    "equipment_id": equipment_id,
-                    "embedding_id": embedding_id,
-                    "status": "success"
-                })
-               
-            except Exception as e:
-                logger.error(f"Error processing image for equipment {equipment_id}: {e}")
-                results.append({
-                    "equipment_id": equipment_id,
-                    "status": "error",
-                    "error": str(e)
-                })
-        
-        # Зберігаємо всі зміни в базі даних
-        await session.commit()
+                try:
+                    # Check if equipment exists
+                    equipment = await conn.fetchrow(
+                        'SELECT id FROM "MilitaryEquipment" WHERE id = $1',
+                        equipment_id
+                    )
+                    
+                    if not equipment:
+                        results.append({
+                            "equipment_id": equipment_id,
+                            "status": "error",
+                            "error": f"Military equipment with ID {equipment_id} not found"
+                        })
+                        continue
+                    
+                    # Load image
+                    if image_source.startswith("http"):
+                        image_bytes = download_from_url(image_source)
+                        # For URL images, use the full URL directly
+                        image_url_for_update = image_source
+                    else:
+                        # Assume it's an S3 key
+                        image_bytes = download_from_s3(AWS_S3_BUCKET, image_source)
+                        # For S3 keys, construct the full S3 URL
+                        image_url_for_update = get_s3_url(image_source)
+                   
+                    # Get embedding
+                    embedding = get_clip_embedding(image_bytes)
+                    
+                    # Create new embedding record
+                    embedding_id = str(uuid4())
+                    
+                    # Insert embedding
+                    await conn.execute(
+                        '''
+                        INSERT INTO "ImageEmbedding" 
+                        (id, "imageSource", "vectorDataJson", "militaryEquipmentId", "metadataJson", "createdAt", "updatedAt")
+                        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+                        ''',
+                        embedding_id,
+                        image_source,
+                        json.dumps(embedding.tolist()),
+                        equipment_id,
+                        json.dumps(metadata) if metadata else None
+                    )
+                    
+                    # Update equipment's imageUrl if requested
+                    if update_image_url:
+                        await conn.execute(
+                            '''
+                            UPDATE "MilitaryEquipment" 
+                            SET "imageUrl" = $1, "updatedAt" = now()
+                            WHERE id = $2
+                            ''',
+                            image_url_for_update,
+                            equipment_id
+                        )
+                   
+                    results.append({
+                        "equipment_id": equipment_id,
+                        "embedding_id": embedding_id,
+                        "status": "success",
+                        "image_url_updated": update_image_url,
+                        "updated_url": image_url_for_update if update_image_url else None
+                    })
+                   
+                except Exception as e:
+                    logger.error(f"Error processing image for equipment {equipment_id}: {e}")
+                    results.append({
+                        "equipment_id": equipment_id,
+                        "status": "error",
+                        "error": str(e)
+                    })
+    
+    except Exception as e:
+        logger.error(f"Error in bulk_embed_images: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+    finally:
+        # Ensure connection is closed
+        if conn is not None:
+            await conn.close()
    
     return jsonify({
         "message": f"Processed {len(results)} images",
@@ -379,30 +523,30 @@ async def bulk_embed_images():
 
 @app.route('/api/search', methods=['POST'])
 async def search_similar_images():
-    """Шукає зображення подібні до запиту"""
+    """Searches for images similar to the query (image or text)"""
     data = request.json
     if not data:
         return jsonify({"error": "No JSON data provided"}), 400
    
-    query_type = data.get("query_type", "image")  # "image" або "text"
+    query_type = data.get("query_type", "image")  # "image" or "text"
     top_k = int(data.get("top_k", 5))
    
     try:
         query_vector = None
        
+        # Get query vector based on query type
         if query_type == "image":
             image_source = data.get("image_source")
             if not image_source:
                 return jsonify({"error": "No image_source provided"}), 400
            
-            # Завантаження зображення
+            # Load the image
             if image_source.startswith("http"):
                 image_bytes = download_from_url(image_source)
             else:
-                # Вважаємо, що це ключ S3
                 image_bytes = download_from_s3(AWS_S3_BUCKET, image_source)
            
-            # Отримання ембеддінгу
+            # Get embedding for the image
             query_vector = get_clip_embedding(image_bytes)
        
         elif query_type == "text":
@@ -410,7 +554,7 @@ async def search_similar_images():
             if not text_query:
                 return jsonify({"error": "No text_query provided"}), 400
            
-            # Отримання ембеддінгу для тексту
+            # Get embedding for the text
             with torch.no_grad():
                 text_tokens = clip.tokenize([text_query]).to(device)
                 text_features = model.encode_text(text_tokens)
@@ -420,15 +564,88 @@ async def search_similar_images():
         else:
             return jsonify({"error": f"Invalid query_type: {query_type}"}), 400
        
-        async with async_session() as session:
-            # Пошук подібних зображень
-            similar_images = await find_similar_images(session, query_vector, top_k)
-       
-            return jsonify({
-                "message": f"Found {len(similar_images)} similar images",
-                "results": similar_images,
-                "status": "success"
-            })
+        # Use direct asyncpg connection instead of SQLAlchemy
+        # This separates the connection management from SQLAlchemy's ORM
+        import asyncpg
+        
+        # Extract connection parameters from DATABASE_URL
+        # Format: postgresql+asyncpg://username:password@host:port/database
+        db_url = DATABASE_URL.replace("postgresql+asyncpg://", "")
+        user_pass, host_db = db_url.split("@")
+        username, password = user_pass.split(":") if ":" in user_pass else (user_pass, "")
+        host_port, database = host_db.split("/")
+        host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
+        
+        conn = None
+        try:
+            # Establish direct connection
+            conn = await asyncpg.connect(
+                user=username,
+                password=password,
+                database=database,
+                host=host,
+                port=port
+            )
+            
+            # Fetch data with direct SQL
+            rows = await conn.fetch("""
+                SELECT 
+                    ie.id as image_id, 
+                    ie."imageSource" as image_source, 
+                    ie."vectorDataJson" as vector_data,
+                    me.id as equipment_id, 
+                    me.name, 
+                    me.type, 
+                    me."imageUrl" as image_url, 
+                    me.country 
+                FROM "ImageEmbedding" ie
+                JOIN "MilitaryEquipment" me ON me.id = ie."militaryEquipmentId"
+            """)
+            
+            # Convert to list of dictionaries immediately
+            db_results = [dict(row) for row in rows]
+            
+        finally:
+            # Ensure connection is closed
+            if conn is not None:
+                await conn.close()
+        
+        # Process results outside of database context
+        similar_images = []
+        for row in db_results:
+            vector_data_json = row.get('vector_data')
+            if vector_data_json:
+                # Parse vector from JSON string
+                vector_data = np.array(json.loads(vector_data_json))
+                
+                # Calculate similarity
+                similarity = calculate_similarity(query_vector, vector_data)
+                
+                # Add to results
+                similar_images.append({
+                    "image_id": row['image_id'],
+                    "similarity": similarity,
+                    "metadata": {
+                        "militaryEquipment": {
+                            "id": row['equipment_id'],
+                            "name": row['name'],
+                            "type": row['type'],
+                            "imageUrl": row['image_url'],
+                            "country": row['country']
+                        },
+                        "imageSource": row['image_source']
+                    }
+                })
+        
+        # Sort by similarity and get top_k results
+        similar_images.sort(key=lambda x: x["similarity"], reverse=True)
+        similar_images = similar_images[:top_k]
+   
+        return jsonify({
+            "message": f"Found {len(similar_images)} similar images",
+            "results": similar_images,
+            "status": "success"
+        })
    
     except Exception as e:
         logger.error(f"Error in search_similar_images: {e}")
@@ -480,23 +697,28 @@ async def clear_vectors():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Порт можна змінити на потрібний вам
+    # Port can be changed to what you need
     port = int(os.getenv('PORT', 8080))
     debug_mode = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
     
-    # Для асинхронного Flask використовуємо hypercorn
+    # For asynchronous Flask, use hypercorn with proper shutdown handling
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
     
     config = Config()
     config.bind = [f"0.0.0.0:{port}"]
     config.debug = debug_mode
+    config.use_reloader = debug_mode
+    config.graceful_timeout = 10.0  # Time for graceful shutdowns
     
     print(f"Starting server on port {port}, debug mode: {debug_mode}")
     print(f"Database URL: {DATABASE_URL}")
     
-    # Не створюємо таблиці БД, як вказано в коментарі
-    # setup_database()
+    # Better error handling for event loop closure
+    async def main():
+        await serve(app, config)
     
-    # Запускаємо сервер
-    asyncio.run(serve(app, config))
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"Server error: {e}")
