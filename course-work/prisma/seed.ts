@@ -5,8 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clear existing data (optional)
-  await prisma.militaryEquipment.deleteMany({});
-
+  await prisma.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS vector;`);
   // Seed data
   const militaryEquipment = [
     {

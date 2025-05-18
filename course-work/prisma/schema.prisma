@@ -1,10 +1,12 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model User {
@@ -29,16 +31,29 @@ model RefreshToken {
 }
 
 model MilitaryEquipment {
-
-  id          String   @id @default(uuid())
-  name        String
-  type        String 
-  country     String 
-  inService   Boolean @default(true)
-  description String?
-  year        Int?
-  imageUrl    String? 
+  id             String           @id @default(uuid())
+  name           String
+  type           String
+  country        String
+  inService      Boolean          @default(true)
+  description    String?
+  year           Int?
+  imageUrl       String?
   technicalSpecs String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  imageEmbeddings ImageEmbedding[]
+}
+
+model ImageEmbedding {
+  id                  String            @id @default(uuid())
+  imageSource         String            
+  vectorData          Unsupported("vector(1536)")? 
+  vectorDataJson      String?          
+  militaryEquipmentId String
+  metadataJson           Json?            
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+ 
+  militaryEquipment   MilitaryEquipment @relation(fields: [militaryEquipmentId], references: [id], onDelete: Cascade)
 }
