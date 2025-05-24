@@ -1,7 +1,7 @@
 import { EquipmentDTO } from './DTO/EquipmentDTO';
 import { Controller, Get, UseGuards, Post, Body, Query } from '@nestjs/common';
 import { EquipmentService } from './equipment.service';
-import { JWTGUard } from 'src/auth/guards/jwt.auth.guard';
+import { JWTGUard } from '../auth/guards/jwt.auth.guard';
 
 @Controller('equipment')
 export class EquipmentController {
@@ -16,7 +16,11 @@ export class EquipmentController {
   @UseGuards(JWTGUard)
   @Post()
   async create(@Body() equipment: EquipmentDTO) {
-    return this.equipmentService.createEquipment(equipment);
+    const newEquipment = await this.equipmentService.createEquipment(equipment);
+    return {
+      message: 'Equipment created successfully',
+      equipment: newEquipment,
+    };
   }
 
   @UseGuards(JWTGUard)

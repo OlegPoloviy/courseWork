@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { FileService } from 'src/fileHandling/file.service';
+import { FileService } from '../fileHandling/file.service';
 
 @Controller('ai')
 export class AiController {

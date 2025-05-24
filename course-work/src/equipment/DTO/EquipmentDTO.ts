@@ -24,6 +24,9 @@ class IsYearConstraint implements ValidatorConstraintInterface {
 // ===== DTO =====
 export class EquipmentDTO {
   @IsString()
+  id?: string;
+
+  @IsString()
   name: string;
 
   @IsString()
@@ -47,4 +50,8 @@ export class EquipmentDTO {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  technicalSpecs?: string;
 }

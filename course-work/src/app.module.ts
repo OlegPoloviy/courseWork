@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { FileModule } from './fileHandling/file.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { AiModule } from './ai/ai.module';
+import { CliModule } from './cli/cli.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AiModule } from './ai/ai.module';
     FileModule,
     EquipmentModule,
     AiModule,
+    CliModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
