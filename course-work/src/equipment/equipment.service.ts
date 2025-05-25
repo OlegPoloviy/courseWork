@@ -245,4 +245,32 @@ export class EquipmentService {
       throw new Error('Failed to search for similar equipment');
     }
   }
+
+  async findByNameAndCountry(
+    name: string,
+    country: string,
+  ): Promise<EquipmentDTO | null> {
+    const equipment = await this.prisma.militaryEquipment.findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: 'insensitive',
+        },
+        country: {
+          equals: country,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (!equipment) return null;
+
+    return {
+      ...equipment,
+      description: equipment.description ?? undefined,
+      year: equipment.year ?? undefined,
+      imageUrl: equipment.imageUrl ?? undefined,
+      technicalSpecs: equipment.technicalSpecs ?? undefined,
+    };
+  }
 }

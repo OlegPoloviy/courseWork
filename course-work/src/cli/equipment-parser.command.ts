@@ -38,7 +38,7 @@ export class ParseEquipmentCommand extends CommandRunner {
       });
 
       this.logger.log(`✅ Parsing completed successfully!`);
-      this.logger.log(`📊 Items processed: ${result.itemsProcessed}`);
+      this.logger.log(`📊 Items processed: ${result.processed}`);
     } catch (error) {
       this.logger.error(`❌ Parsing failed: ${error.message}`);
       process.exit(1);
@@ -86,10 +86,14 @@ export class QuickSeedCommand extends CommandRunner {
     this.logger.log('🌱 Quick seeding database with equipment data...');
 
     try {
-      const equipment = await this.parserService.fetchFromOpenAPIs();
+      const result = await this.parserService.startParsing({
+        maxItems: 10,
+        sources: ['wikipedia'],
+        dryRun: false,
+      });
 
       this.logger.log(`✅ Quick seed completed!`);
-      this.logger.log(`📊 Added ${equipment.length} equipment items`);
+      this.logger.log(`📊 Added ${result.processed} equipment items`);
     } catch (error) {
       this.logger.error(`❌ Quick seed failed: ${error.message}`);
       process.exit(1);

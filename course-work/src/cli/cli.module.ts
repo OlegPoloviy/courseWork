@@ -7,8 +7,11 @@ import {
   QuickSeedCommand,
 } from './equipment-parser.command';
 import { EquipmentParserService } from '../equipment-parser/equipment-parser.service';
-import { EquipmentService } from '../equipment/equipment.service';
 import { AiModule } from '../ai/ai.module';
+import { EquipmentService } from '../equipment/equipment.service';
+import { FileService } from '../fileHandling/file.service';
+import { FileModule } from '../fileHandling/file.module';
+import { EquipmentModule } from '../equipment/equipment.module';
 
 @Module({
   imports: [
@@ -17,6 +20,8 @@ import { AiModule } from '../ai/ai.module';
     }),
     HttpModule,
     AiModule,
+    FileModule,
+    EquipmentModule,
   ],
   providers: [
     PrismaService,
@@ -24,6 +29,7 @@ import { AiModule } from '../ai/ai.module';
     EquipmentParserService,
     ParseEquipmentCommand,
     QuickSeedCommand,
+    FileService,
   ],
 })
 export class CliModule {}

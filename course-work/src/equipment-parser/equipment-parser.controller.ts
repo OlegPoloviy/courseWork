@@ -23,10 +23,7 @@ export class ParserController {
 
     try {
       const result = await this.parserService.startParsing(options);
-      return {
-        success: true,
-        ...result,
-      };
+      return result;
     } catch (error) {
       this.logger.error('Parsing failed:', error.message);
       return {
@@ -44,13 +41,13 @@ export class ParserController {
     error?: string;
   }> {
     try {
-      const equipment = await this.parserService.parseWikipediaCategory(
-        body.categoryUrl,
-      );
+      const result = await this.parserService.startParsing({
+        sources: ['wikipedia'],
+      });
       return {
         success: true,
-        count: equipment.length,
-        data: equipment,
+        count: result.processed,
+        data: result.data || [],
       };
     } catch (error) {
       return {
@@ -70,11 +67,13 @@ export class ParserController {
     error?: string;
   }> {
     try {
-      const equipment = await this.parserService.parseMilitaryToday();
+      const result = await this.parserService.startParsing({
+        sources: ['army-recognition'],
+      });
       return {
         success: true,
-        count: equipment.length,
-        data: equipment,
+        count: result.processed,
+        data: result.data || [],
       };
     } catch (error) {
       return {
@@ -95,12 +94,15 @@ export class ParserController {
     error?: string;
   }> {
     try {
-      const equipment = await this.parserService.fetchFromOpenAPIs();
+      const result = await this.parserService.startParsing({
+        maxItems: 10,
+        sources: ['wikipedia'],
+      });
       return {
         success: true,
         message: 'Quick population completed',
-        count: equipment.length,
-        data: equipment,
+        count: result.processed,
+        data: result.data || [],
       };
     } catch (error) {
       return {

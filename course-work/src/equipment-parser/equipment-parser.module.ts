@@ -1,18 +1,16 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
+import { ConfigModule } from '@nestjs/config';
 import { EquipmentParserService } from './equipment-parser.service';
+import { EquipmentModule } from '../equipment/equipment.module';
+import { AiModule } from '../ai/ai.module';
 import { ParserController } from './equipment-parser.controller';
 import { EquipmentService } from '../equipment/equipment.service';
 import { AiService } from '../ai/ai.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
-  imports: [
-    HttpModule.register({
-      timeout: 30000, // 30 секунд таймаут для парсингу
-      maxRedirects: 5,
-    }),
-  ],
+  imports: [HttpModule, ConfigModule, EquipmentModule, AiModule],
   controllers: [ParserController],
   providers: [
     EquipmentParserService,
@@ -22,4 +20,4 @@ import { PrismaService } from '../prisma/prisma.service';
   ],
   exports: [EquipmentParserService],
 })
-export class ParserModule {}
+export class EquipmentParserModule {}

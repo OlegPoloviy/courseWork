@@ -57,3 +57,19 @@ model ImageEmbedding {
  
   militaryEquipment   MilitaryEquipment @relation(fields: [militaryEquipmentId], references: [id], onDelete: Cascade)
 }
+
+model Equipment {
+  id             String   @id @default(uuid())
+  name           String
+  type           String
+  country        String
+  description    String?
+  year           Int?
+  inService      Boolean  @default(true)
+  imageUrl       String?
+  technicalSpecs String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([name, country])
+}
