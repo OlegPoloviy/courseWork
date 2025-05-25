@@ -28,11 +28,27 @@ export class EquipmentService {
 
   async createEquipment(equipment: EquipmentDTO): Promise<EquipmentDTO> {
     try {
+      console.log('Creating equipment:', {
+        name: equipment.name,
+        type: equipment.type,
+        country: equipment.country,
+        inService: equipment.inService,
+      });
+
       const newEquipment = await this.prisma.militaryEquipment.create({
         data: {
-          ...equipment,
+          name: equipment.name,
+          type: equipment.type,
+          country: equipment.country,
+          inService: equipment.inService,
+          description: equipment.description,
+          year: equipment.year,
+          imageUrl: equipment.imageUrl,
+          technicalSpecs: equipment.technicalSpecs,
         },
       });
+
+      console.log('Equipment created successfully:', newEquipment.id);
 
       // Якщо є зображення, створюємо ембединг
       if (newEquipment.imageUrl) {
@@ -48,7 +64,6 @@ export class EquipmentService {
               name: newEquipment.name,
               type: newEquipment.type,
               country: newEquipment.country,
-              // Додаємо інші корисні метадані
               ...(newEquipment.year && { year: newEquipment.year }),
               ...(newEquipment.description && {
                 description: newEquipment.description,
@@ -64,6 +79,7 @@ export class EquipmentService {
             `Failed to create embedding for equipment ID: ${newEquipment.id}`,
             embeddingError,
           );
+          // Не прокидуємо помилку далі, оскільки основний запис вже створено
         }
       }
 
@@ -76,7 +92,14 @@ export class EquipmentService {
       };
     } catch (err) {
       console.error('Failed to create equipment:', err);
-      throw new Error('Could not create equipment');
+      if (err instanceof Prisma.PrismaClientKnownRequestError) {
+        if (err.code === 'P2002') {
+          throw new Error(
+            `Equipment with name "${equipment.name}" already exists`,
+          );
+        }
+      }
+      throw new Error(`Could not create equipment: ${err.message}`);
     }
   }
 

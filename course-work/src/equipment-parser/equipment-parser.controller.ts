@@ -1,14 +1,14 @@
 import { Controller, Post, Get, Body, Query, Logger } from '@nestjs/common';
 import {
-  EquipmentParserService,
-  ParsedEquipmentData,
+  EnhancedEquipmentParserService,
+  ParseResult,
 } from './equipment-parser.service';
 
 @Controller('parser')
 export class ParserController {
   private readonly logger = new Logger(ParserController.name);
 
-  constructor(private readonly parserService: EquipmentParserService) {}
+  constructor(private readonly parserService: EnhancedEquipmentParserService) {}
 
   @Post('start')
   async startParsing(
@@ -18,7 +18,7 @@ export class ParserController {
       maxItems?: number;
       categories?: string[];
     },
-  ) {
+  ): Promise<ParseResult> {
     this.logger.log('Starting equipment parsing...');
 
     try {
@@ -26,92 +26,49 @@ export class ParserController {
       return result;
     } catch (error) {
       this.logger.error('Parsing failed:', error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
+      throw error;
     }
   }
 
   @Post('parse-wikipedia')
-  async parseWikipedia(@Body() body: { categoryUrl: string }): Promise<{
-    success: boolean;
-    count: number;
-    data: ParsedEquipmentData[];
-    error?: string;
-  }> {
+  async parseWikipedia(
+    @Body() body: { categoryUrl: string },
+  ): Promise<ParseResult> {
     try {
       const result = await this.parserService.startParsing({
         sources: ['wikipedia'],
       });
-      return {
-        success: true,
-        count: result.processed,
-        data: result.data || [],
-      };
+      return result;
     } catch (error) {
-      return {
-        success: false,
-        count: 0,
-        data: [],
-        error: error.message,
-      };
+      this.logger.error('Wikipedia parsing failed:', error.message);
+      throw error;
     }
   }
 
   @Post('parse-military-today')
-  async parseMilitaryToday(): Promise<{
-    success: boolean;
-    count: number;
-    data: ParsedEquipmentData[];
-    error?: string;
-  }> {
+  async parseMilitaryToday(): Promise<ParseResult> {
     try {
       const result = await this.parserService.startParsing({
-        sources: ['army-recognition'],
+        sources: ['military-today'],
       });
-      return {
-        success: true,
-        count: result.processed,
-        data: result.data || [],
-      };
+      return result;
     } catch (error) {
-      return {
-        success: false,
-        count: 0,
-        data: [],
-        error: error.message,
-      };
+      this.logger.error('Military Today parsing failed:', error.message);
+      throw error;
     }
   }
 
   @Post('quick-populate')
-  async quickPopulate(): Promise<{
-    success: boolean;
-    message: string;
-    count: number;
-    data: ParsedEquipmentData[];
-    error?: string;
-  }> {
+  async quickPopulate(): Promise<ParseResult> {
     try {
       const result = await this.parserService.startParsing({
         maxItems: 10,
         sources: ['wikipedia'],
       });
-      return {
-        success: true,
-        message: 'Quick population completed',
-        count: result.processed,
-        data: result.data || [],
-      };
+      return result;
     } catch (error) {
-      return {
-        success: false,
-        message: 'Quick population failed',
-        count: 0,
-        data: [],
-        error: error.message,
-      };
+      this.logger.error('Quick population failed:', error.message);
+      throw error;
     }
   }
 
@@ -119,7 +76,7 @@ export class ParserController {
   getParserStatus() {
     return {
       status: 'ready',
-      availableSources: ['wikipedia', 'military-today', 'open-apis'],
+      availableSources: ['wikipedia', 'army-technology'],
       message: 'Parser is ready to collect equipment data',
     };
   }
