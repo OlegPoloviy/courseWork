@@ -8,7 +8,7 @@ interface NavbarProps {
   user?: IUser;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ user }) => {
+const Navbar: React.FC<NavbarProps> = () => {
   const { data: session, status } = useSession();
 
   if (status === "loading")
@@ -65,6 +65,14 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
       >
         <Link
           href="/home"
+          fontSize="lg"
+          fontWeight="bold"
+          _hover={{ textDecoration: "none", color: "blue.500" }}
+        >
+          Home
+        </Link>
+        <Link
+          href="/home/internetSearch"
           fontSize="lg"
           fontWeight="bold"
           _hover={{ textDecoration: "none", color: "blue.500" }}

@@ -2,7 +2,8 @@ import {
   Box,
   Input,
   Text,
-  Field,
+  FormControl,
+  FormLabel,
   Checkbox,
   Textarea,
   Image,
@@ -149,136 +150,169 @@ const CreateForm = () => {
       alignItems="center"
       flexDirection="column"
       width="100%"
-      height={"100%"}
-      mt={5}
+      minHeight={{ base: "100vh", md: "99vh" }}
+      mt={0}
+      bgColor={"gray.900"}
+      py={{ base: 4, md: 0 }}
+      px={{ base: 4, md: 0 }}
     >
-      <Text fontSize={"xl"}>Create a new entry in our database</Text>
-      <Box width="100%" maxWidth="400px" mt={5}>
-        <Box marginBottom="20px">
-          <Field.Root>
-            <Field.Label>Enter the name of equipment</Field.Label>
+      <Text
+        fontSize={{ base: "lg", md: "xl" }}
+        textAlign="center"
+        mb={{ base: 4, md: 0 }}
+      >
+        Create a new entry in our database
+      </Text>
+      <Box
+        width="100%"
+        maxWidth={{ base: "100%", md: "400px" }}
+        mb={{ base: 8, md: 40 }}
+      >
+        <Box marginBottom={{ base: "16px", md: "20px" }}>
+          <FormControl>
+            <FormLabel fontSize={{ base: "sm", md: "md" }}>
+              Enter the name of equipment
+            </FormLabel>
             <Input
               placeholder="Tiger etc."
               value={equipmentName}
               onChange={(e) => setEquipmentName(e.target.value)}
+              size={{ base: "sm", md: "md" }}
             />
             {errors.equipmentName && (
-              <Text color="red.500" fontSize="sm">
+              <Text color="red.500" fontSize="xs">
                 {errors.equipmentName}
               </Text>
             )}
-          </Field.Root>
+          </FormControl>
         </Box>
-        <Box marginBottom="20px">
-          <Field.Root>
-            <Field.Label>Enter the type of equipment</Field.Label>
+        <Box marginBottom={{ base: "16px", md: "20px" }}>
+          <FormControl>
+            <FormLabel fontSize={{ base: "sm", md: "md" }}>
+              Enter the type of equipment
+            </FormLabel>
             <Input
               placeholder="Tank etc."
               value={equipmentType}
               onChange={(e) => setEquipmentType(e.target.value)}
+              size={{ base: "sm", md: "md" }}
             />
             {errors.equipmentType && (
-              <Text color="red.500" fontSize="sm">
+              <Text color="red.500" fontSize="xs">
                 {errors.equipmentType}
               </Text>
             )}
-          </Field.Root>
+          </FormControl>
         </Box>
         <Box>
-          <Field.Root>
-            <Field.Label>Enter the country of equipment</Field.Label>
+          <FormControl>
+            <FormLabel fontSize={{ base: "sm", md: "md" }}>
+              Enter the country of equipment
+            </FormLabel>
             <Input
               placeholder="USA etc."
               value={equipmentCountry}
               onChange={(e) => setEquipmentCountry(e.target.value)}
+              size={{ base: "sm", md: "md" }}
             />
             {errors.equipmentCountry && (
-              <Text color="red.500" fontSize="sm">
+              <Text color="red.500" fontSize="xs">
                 {errors.equipmentCountry}
               </Text>
             )}
-          </Field.Root>
+          </FormControl>
         </Box>
-        <Box marginBottom="20px" mt={5}>
-          <Checkbox.Root>
-            <Checkbox.HiddenInput
-              onChange={(e) => setInService(e.target.checked)}
-            />
-            <Checkbox.Control />
-            <Checkbox.Label>In service</Checkbox.Label>
-          </Checkbox.Root>
+        <Box marginBottom={{ base: "16px", md: "20px" }} mt={5}>
+          <Checkbox
+            isChecked={inService}
+            onChange={(e) => setInService(e.target.checked)}
+            size={{ base: "sm", md: "md" }}
+          >
+            In service
+          </Checkbox>
         </Box>
-        <Box marginBottom="20px">
-          <Field.Root>
-            <Field.Label>Enter the description of equipment</Field.Label>
+        <Box marginBottom={{ base: "16px", md: "20px" }}>
+          <FormControl>
+            <FormLabel fontSize={{ base: "sm", md: "md" }}>
+              Enter the description of equipment
+            </FormLabel>
             <Textarea
               placeholder="..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              size={{ base: "sm", md: "md" }}
+              minHeight={{ base: "100px", md: "120px" }}
             />
             {errors.description && (
-              <Text color="red.500" fontSize="sm">
+              <Text color="red.500" fontSize="xs">
                 {errors.description}
               </Text>
             )}
-          </Field.Root>
+          </FormControl>
         </Box>
-        <Box marginBottom="20px">
-          <Field.Root>
-            <Field.Label>Enter the technical specifications</Field.Label>
+        <Box marginBottom={{ base: "16px", md: "20px" }}>
+          <FormControl>
+            <FormLabel fontSize={{ base: "sm", md: "md" }}>
+              Enter the technical specifications
+            </FormLabel>
             <Textarea
               placeholder="Weight: 73.6 tonnes; Length: 9.77 m; Width: 3.66 m; ..."
               value={technicalSpecs}
               onChange={(e) => setTechnicalSpecs(e.target.value)}
-              minHeight="120px"
+              minHeight={{ base: "100px", md: "120px" }}
+              size={{ base: "sm", md: "md" }}
             />
             {errors.technicalSpecs && (
-              <Text color="red.500" fontSize="sm">
+              <Text color="red.500" fontSize="xs">
                 {errors.technicalSpecs}
               </Text>
             )}
-          </Field.Root>
+          </FormControl>
         </Box>
-        <Box marginBottom="20px">
-          <Field.Root>
-            <Field.Label>Enter the year</Field.Label>
+        <Box marginBottom={{ base: "16px", md: "20px" }}>
+          <FormControl>
+            <FormLabel fontSize={{ base: "sm", md: "md" }}>
+              Enter the year
+            </FormLabel>
             <Input
               type="number"
               value={year || ""}
               onChange={(e) =>
                 setYear(e.target.value ? parseInt(e.target.value) : undefined)
               }
+              size={{ base: "sm", md: "md" }}
             />
             {errors.year && (
-              <Text color="red.500" fontSize="sm">
+              <Text color="red.500" fontSize="xs">
                 {errors.year}
               </Text>
             )}
-          </Field.Root>
+          </FormControl>
         </Box>
         {image ? (
           <Image
             src={image}
             alt="Avatar"
-            width={"420px"}
-            boxSize="220px"
+            width={{ base: "100%", md: "420px" }}
+            boxSize={{ base: "180px", md: "220px" }}
             border="2px solid #ccc"
-            marginBottom="20px"
+            marginBottom={{ base: "16px", md: "20px" }}
+            objectFit="cover"
           />
         ) : (
           <label htmlFor="avatar-upload">
             <Box
               width="100%"
-              height="220px"
+              height={{ base: "180px", md: "220px" }}
               border="2px dashed #ccc"
               display="flex"
               alignItems="center"
               justifyContent="center"
               color="gray.500"
-              fontSize="sm"
+              fontSize={{ base: "xs", md: "sm" }}
               textAlign="center"
               p={2}
-              marginBottom="20px"
+              marginBottom={{ base: "16px", md: "20px" }}
               cursor={"pointer"}
             >
               No image provided
@@ -298,6 +332,9 @@ const CreateForm = () => {
           colorScheme="teal"
           loadingText="Uploading..."
           width="100%"
+          size={{ base: "md", md: "lg" }}
+          fontSize={{ base: "sm", md: "md" }}
+          isLoading={loading}
         >
           Upload data
         </Button>

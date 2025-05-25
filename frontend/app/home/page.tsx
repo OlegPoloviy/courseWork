@@ -238,7 +238,7 @@ export default function Home() {
     <Box>
       {/* Hero Section */}
       <Box
-        bg="gray.800"
+        bg="gray.900"
         color="white"
         py={20}
         position="relative"
@@ -379,7 +379,7 @@ export default function Home() {
       </Box>
 
       {/* Quick Access Section */}
-      <Box py={20}>
+      <Box py={20} bgColor={"black"} mt={3}>
         <Container maxW="container.xl">
           <Stack align="center" gap={12}>
             <Heading as="h2" size="xl" textAlign="center">

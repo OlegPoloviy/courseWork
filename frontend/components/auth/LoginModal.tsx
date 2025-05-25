@@ -17,13 +17,11 @@ const LoginModal = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
 
     try {
@@ -35,7 +33,6 @@ const LoginModal = () => {
 
       if (result?.error) {
         setError(result.error);
-        setIsLoading(false);
       } else {
         console.log("Logged in successfully");
         router.push("/home");
@@ -43,7 +40,6 @@ const LoginModal = () => {
     } catch (err) {
       setError("An unexpected error occurred");
       console.error(err);
-      setIsLoading(false);
     }
   };
 
@@ -124,7 +120,7 @@ const LoginModal = () => {
               _hover={{ color: "blue.500", textDecoration: "underline" }}
               _focus={{ boxShadow: "none" }}
             >
-              Don't have an account?
+              Don&apos;t have an account?
             </ChakraLink>
           </NextLink>
           <Button

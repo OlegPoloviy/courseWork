@@ -1,8 +1,23 @@
 "use client";
-import { Input, Box, Text, Image, Field, Button } from "@chakra-ui/react";
+import {
+  Input,
+  Box,
+  Text,
+  Image,
+  FormControl,
+  FormLabel,
+  Button,
+} from "@chakra-ui/react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
+import { toast } from "react-hot-toast";
+
+interface ProfileData {
+  name: string;
+  email: string;
+  avatar?: string;
+}
 
 const UserAccount: React.FC = () => {
   const { data: session, status } = useSession();
@@ -10,7 +25,6 @@ const UserAccount: React.FC = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState<string | null>("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!session && status !== "loading") {
@@ -23,7 +37,6 @@ const UserAccount: React.FC = () => {
       try {
         if (!session?.user?.email) return;
 
-        setLoading(true);
         const encodedEmail = encodeURIComponent(session.user.email);
         const response = await fetch(
           `http://localhost:3001/user?email=${encodedEmail}`,
@@ -44,8 +57,6 @@ const UserAccount: React.FC = () => {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -64,7 +75,6 @@ const UserAccount: React.FC = () => {
       formData.append("file", file);
 
       try {
-        setLoading(true);
         const response = await fetch("http://localhost:3001/file", {
           method: "POST",
           body: formData,
@@ -77,37 +87,34 @@ const UserAccount: React.FC = () => {
         setAvatar(data.url);
       } catch (err) {
         console.error("Error uploading file:", err);
-      } finally {
-        setLoading(false);
       }
     }
   };
 
-  const handleUpdateUser = async () => {
+  const handleUpdateProfile = async () => {
     try {
-      setLoading(true);
-      const response = await fetch("http://localhost:3001/user/update", {
-        method: "POST",
-        body: JSON.stringify({ name, email, avatar }),
+      const profileData: ProfileData = {
+        name,
+        email,
+        avatar: avatar || undefined,
+      };
+
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
+        body: JSON.stringify(profileData),
       });
 
-      const data = await response.json();
-      alert("User successfully updated");
-
-      if (data.user) {
-        setName(data.user.name || name);
-        setEmail(data.user.email || email);
-        setAvatar(data.user.avatar || avatar);
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
       }
+
+      toast.success("Profile updated successfully");
     } catch (error) {
-      console.error("Error in update function:", error);
-      alert("Error updating user");
-    } finally {
-      setLoading(false);
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
     }
   };
 
@@ -129,6 +136,7 @@ const UserAccount: React.FC = () => {
         boxShadow="lg"
         display="flex"
         justifyContent="space-between"
+        bgColor={"gray.900"}
         gap={10}
       >
         {/* Left: Form */}
@@ -137,25 +145,25 @@ const UserAccount: React.FC = () => {
             User account settings
           </Text>
 
-          <Field.Root>
-            <Field.Label>Your name</Field.Label>
+          <FormControl>
+            <FormLabel>Your name</FormLabel>
             <Input
               placeholder="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-          </Field.Root>
+          </FormControl>
 
-          <Field.Root>
-            <Field.Label>Your email</Field.Label>
+          <FormControl>
+            <FormLabel>Your email</FormLabel>
             <Input
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-          </Field.Root>
+          </FormControl>
 
-          <Button colorScheme="teal" onClick={handleUpdateUser}>
+          <Button colorScheme="teal" onClick={handleUpdateProfile}>
             Confirm changes
           </Button>
         </Box>

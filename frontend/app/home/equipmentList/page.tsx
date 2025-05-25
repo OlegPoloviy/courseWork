@@ -49,7 +49,7 @@ const EquipmentList = () => {
       }
     };
     if (session) fetchEquipment();
-  }, [session]);
+  }, [session, setEquipment]);
 
   useEffect(() => {
     if (!equipment) return;

@@ -1,16 +1,22 @@
 "use client";
-import { Box, Text } from "@chakra-ui/react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+
+import { Suspense } from "react";
+import { Box, Text, Input } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Equipment } from "@/types/Equipment";
+import { useEquipmentStore } from "@/app/store/equipmentStore";
 import EquipmentListItem from "@/components/equipment/EquipmentListItem";
 
-const EquipmentSearchPage = () => {
-  const searchParams = useSearchParams();
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [searchParam, setSearchParam] = useState<URLSearchParams | undefined>();
-  const [isLoading, setIsLoading] = useState(true);
+function EquipmentSearchContent() {
+  const equipment = useEquipmentStore((state) => state.equipment);
+  const setEquipment = useEquipmentStore((state) => state.setEquipment);
+  const [filteredEquipment, setFilteredEquipment] = useState<
+    Equipment[] | null | undefined
+  >([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -21,91 +27,84 @@ const EquipmentSearchPage = () => {
   }, [session, status, router]);
 
   useEffect(() => {
+    console.log("Session:", session);
     const fetchEquipment = async () => {
-      if (status === "loading" || !session) return;
-
-      setIsLoading(true);
-      const params = new URLSearchParams();
-
-      if (searchParams.has("query"))
-        params.append("query", searchParams.get("query")!);
-      if (searchParams.has("name"))
-        params.append("name", searchParams.get("name")!);
-      if (searchParams.has("type"))
-        params.append("type", searchParams.get("type")!);
-      if (searchParams.has("country"))
-        params.append("country", searchParams.get("country")!);
-      if (searchParams.has("description"))
-        params.append("description", searchParams.get("description")!);
-      if (searchParams.has("techSpecs"))
-        params.append("techSpecs", searchParams.get("techSpecs")!);
-      if (searchParams.has("inService"))
-        params.append("inService", searchParams.get("inService")!);
-      if (searchParams.has("id")) params.append("id", searchParams.get("id")!);
-
-      setSearchParam(params);
-
       try {
-        const response = await fetch(
-          `http://localhost:3001/equipment/search?${params}`,
-          {
-            headers: {
-              Authorization: `Bearer ${session?.accessToken}`,
-            },
-          }
-        );
-
+        setLoading(true);
+        const response = await fetch("http://localhost:3001/equipment", {
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+        });
         const data = await response.json();
-        console.log("API response:", data);
-
-        if (Array.isArray(data)) {
-          setEquipment(data);
-        } else if (
-          data &&
-          typeof data === "object" &&
-          Array.isArray(data.items)
-        ) {
-          setEquipment(data.items);
-        } else {
-          console.error("Unexpected API response format:", data);
-          setEquipment([]);
-        }
-      } catch (error) {
-        console.error("Error fetching equipment:", error);
-        setEquipment([]);
-      } finally {
-        setIsLoading(false);
+        console.log(data);
+        const equipmentData = Array.isArray(data)
+          ? data
+          : data?.equipment ?? [];
+        setEquipment(equipmentData);
+        setFilteredEquipment(equipmentData);
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
       }
     };
+    if (session) fetchEquipment();
+  }, [session, setEquipment]);
 
-    fetchEquipment();
-  }, [searchParams, session, status]);
+  useEffect(() => {
+    if (!equipment) return;
 
-  if (status === "loading") {
-    return <Text>Loading session...</Text>;
-  }
+    if (searchTerm.trim() === "") {
+      setFilteredEquipment(equipment);
+    } else {
+      const filtered = equipment.filter(
+        (item) =>
+          item.name &&
+          item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredEquipment(filtered);
+    }
+  }, [searchTerm, equipment]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   return (
-    <Box textAlign="center" p={4}>
-      <Text fontSize="2xl" as="h1" mb={4}>
-        Equipment List based on your search
-      </Text>
+    <Box textAlign={"center"} p={4}>
+      <Box display={"flex"} justifyContent={"space-between"} mb={4}>
+        <Text fontSize={"2xl"} as={"h1"}>
+          Equipment Search
+        </Text>
+        <Input
+          width={"30%"}
+          justifySelf={"flex-end"}
+          placeholder="Filter by title..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </Box>
 
-      {isLoading ? (
-        <Text>Loading equipment...</Text>
-      ) : equipment.length > 0 ? (
-        <Box display="flex" flexDirection="column" gap={2}>
-          {equipment.map((el) => (
-            <Box key={el.id} p={2}>
-              <EquipmentListItem equipment={el} />
-            </Box>
-          ))}
-        </Box>
+      {loading ? (
+        <Text>Loading, please wait...</Text>
+      ) : filteredEquipment && filteredEquipment.length > 0 ? (
+        filteredEquipment.map((el) => (
+          <Box key={el.id} p={4}>
+            <EquipmentListItem equipment={el} />
+          </Box>
+        ))
       ) : (
-        <Text>No equipment found</Text>
+        <Text mt={4}>No equipment found matching &quot;{searchTerm}&quot;</Text>
       )}
     </Box>
   );
-};
+}
 
-export default EquipmentSearchPage;
+export default function EquipmentSearch() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EquipmentSearchContent />
+    </Suspense>
+  );
+}

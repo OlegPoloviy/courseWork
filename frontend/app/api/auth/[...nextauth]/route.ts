@@ -1,8 +1,35 @@
-import { ITokens, IUser } from "@/types/UserInterface";
-import NextAuth, { AuthOptions, Session, TokenSet } from "next-auth";
+import NextAuth, {
+  AuthOptions,
+  Session,
+  TokenSet,
+  User,
+  DefaultSession,
+} from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOptions: AuthOptions = {
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      isAdmin: boolean;
+    } & DefaultSession["user"];
+    accessToken?: string;
+  }
+
+  interface User {
+    id: string;
+    isAdmin: boolean;
+    accessToken?: string;
+  }
+}
+
+interface CustomToken extends TokenSet {
+  id?: string;
+  isAdmin?: boolean;
+  accessToken?: string;
+}
+
+const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -47,17 +74,10 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({
-      token,
-      user,
-    }: {
-      token: TokenSet & { id?: string; isAdmin?: boolean };
-      user: any;
-    }) {
+    async jwt({ token, user }: { token: CustomToken; user: User | null }) {
       if (user) {
         token.accessToken = user.accessToken;
         token.id = user.id;
-        // Додаємо isAdmin в токен
         token.isAdmin = user.isAdmin;
       }
       return token;
@@ -68,12 +88,12 @@ export const authOptions: AuthOptions = {
       token,
     }: {
       session: Session;
-      token: TokenSet & { id?: string; isAdmin?: boolean };
+      token: CustomToken;
     }) {
       if (session.user) {
-        session.user.id = token.id;
-        (session as any).accessToken = token.accessToken;
-        (session.user as any).isAdmin = token.isAdmin;
+        session.user.id = token.id || "";
+        session.accessToken = token.accessToken;
+        session.user.isAdmin = token.isAdmin || false;
       }
       return session;
     },
