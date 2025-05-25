@@ -1,14 +1,12 @@
 import { Controller, Post, Get, Body, Query, Logger } from '@nestjs/common';
-import {
-  EnhancedEquipmentParserService,
-  ParseResult,
-} from './equipment-parser.service';
+import { EquipmentParserService } from './equipment-parser.service';
+import { ParseResult } from './equipment-parser.service';
 
 @Controller('parser')
 export class ParserController {
   private readonly logger = new Logger(ParserController.name);
 
-  constructor(private readonly parserService: EnhancedEquipmentParserService) {}
+  constructor(private readonly parserService: EquipmentParserService) {}
 
   @Post('start')
   async startParsing(
