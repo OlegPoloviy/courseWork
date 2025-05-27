@@ -9,7 +9,13 @@ import { createMultiStyleConfigHelpers } from "@chakra-ui/styled-system";
 
 export function ColorModeProvider(props: ThemeProviderProps) {
   return (
-    <ThemeProvider attribute="class" disableTransitionOnChange {...props} />
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      forcedTheme="dark"
+      disableTransitionOnChange
+      {...props}
+    />
   );
 }
 
@@ -24,23 +30,21 @@ export interface UseColorModeReturn {
 export function useColorMode(): UseColorModeReturn {
   const { resolvedTheme, setTheme } = useTheme();
   const toggleColorMode = () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    setTheme("dark"); // Always set to dark
   };
   return {
-    colorMode: resolvedTheme as ColorMode,
-    setColorMode: setTheme,
+    colorMode: "dark" as ColorMode, // Always return dark
+    setColorMode: () => setTheme("dark"), // Always set to dark
     toggleColorMode,
   };
 }
 
 export function useColorModeValue<T>(light: T, dark: T) {
-  const { colorMode } = useColorMode();
-  return colorMode === "dark" ? dark : light;
+  return dark; // Always return dark value
 }
 
 export function ColorModeIcon() {
-  const { colorMode } = useColorMode();
-  return colorMode === "dark" ? <LuMoon /> : <LuSun />;
+  return <LuMoon />; // Always show moon icon
 }
 
 export const ColorModeButton = React.forwardRef<
@@ -84,7 +88,7 @@ export const ColorMode = helpers.defineMultiStyleConfig({
       borderRadius: "md",
       p: 2,
       _hover: {
-        bg: "gray.100",
+        bg: "gray.700",
       },
     },
   },

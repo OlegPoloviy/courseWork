@@ -1,7 +1,12 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Базові налаштування
+  compress: true,
+  poweredByHeader: false,
+  // Відключаємо проблемні експериментальні функції
+  experimental: {
+    optimizeCss: false, // Відключаємо через проблему з critters
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
