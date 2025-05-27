@@ -4,37 +4,38 @@ FROM node:20-alpine AS builder
 # Встановлюємо робочий каталог
 WORKDIR /app
 
-# Копіюємо залежності
+# Додаємо необхідні залежності для Alpine
+RUN apk add --no-cache python3 make g++
+
+# Копіюємо файли залежностей
 COPY package.json package-lock.json* ./
 
-# Встановлюємо залежності
+# Встановлюємо залежності (без --silent щоб бачити помилки)
 RUN npm install --legacy-peer-deps
 
-# Копіюємо все решту
+# Копіюємо код
 COPY . .
 
 # Білдимо застосунок
 RUN npm run build
 
-
-
-# 🚀 Stage 2: Запуск білду
+# 🚀 Stage 2: Production runner
 FROM node:20-alpine AS runner
 
-# Встановлюємо робочий каталог
 WORKDIR /app
 
-# Копіюємо тільки те, що потрібно для запуску
+# Копіюємо необхідні файли
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.js* ./  
-COPY --from=builder /app/next-env.d.ts* ./   
-COPY --from=builder /app/tsconfig.json* ./   
 
-# Експортуємо порт (Next.js використовує 3000 за замовчуванням)
+# Експортуємо порт
 EXPOSE 3000
 
+# Встановлюємо змінні середовища
+ENV NODE_ENV=production
+ENV PORT=3000
+
 # Запуск
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
